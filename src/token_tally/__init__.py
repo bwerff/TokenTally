@@ -1,4 +1,5 @@
 from .usage_ledger import UsageEvent, UsageLedger
+from .audit import AuditLog
 from .token_counter import (
     count_openai_tokens,
     count_anthropic_tokens,
@@ -21,6 +22,9 @@ __all__ = [
     "parse_dcgm_gpu_minutes",
     "Ledger",
     "StripePayoutClient",
+    "UsageEvent",
+    "UsageLedger",
+    "AuditLog",
     "arima_forecast",
     "forecast_next_hour",
     "send_webhook_message",

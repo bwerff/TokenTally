@@ -8,6 +8,8 @@ export default function Navbar() {
         <div className="space-x-4">
           <Link className="text-blue-600" href="/offers">Offers</Link>
           <Link className="text-blue-600" href="/upload-receipt">Upload Receipt</Link>
+          <Link className="text-blue-600" href="/usage">Usage</Link>
+          <Link className="text-blue-600" href="/audit">Audit</Link>
         </div>
       </div>
     </nav>

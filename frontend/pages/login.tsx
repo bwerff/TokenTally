@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/router'
 import Navbar from '../components/Navbar'
-import { login } from '../lib/api'
+import { signIn } from 'next-auth/react'
 
 export default function Login() {
   const router = useRouter()
@@ -11,11 +11,15 @@ export default function Login() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    try {
-      await login(email, password)
-      router.push('/offers')
-    } catch (err) {
+    const res = await signIn('credentials', {
+      redirect: false,
+      email,
+      password,
+    })
+    if (res?.error) {
       setError('Invalid credentials')
+    } else {
+      router.push('/offers')
     }
   }
 
