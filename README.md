@@ -213,5 +213,17 @@ Stripe Invoice → Customer
 | Line up design-partner LOIs (3 SaaS, 2 Enterprise) | Sales    | 30 Jun 2025 |
 
 ---
+### 15  |  Payout and Ledger
+
+Our Stripe payout client allows cash-back payouts and records each payout in a local SQLite ledger. Use `STRIPE_API_KEY` in your environment and call the helper class:
+
+```python
+from token_tally.payout import StripePayoutClient
+client = StripePayoutClient(api_key="sk_test_...")
+client.create_payout("out_123", user_id="u1", amount=1000, currency="usd")
+```
+
+This writes a record to `ledger.db` and you can query status via `retrieve_payout`.
+
 
 **Bottom line:** This gateway solves a *real*, boring accounting problem nobody wants to touch. Nail deterministic metering, stay invisible in the hot path, and invoice cleanly—everything else is a feature-creep distraction.
