@@ -1,4 +1,7 @@
-export interface Env {}
+export interface Env {
+  CREDIT_LIMIT?: string;
+  WEBHOOK_URL?: string;
+}
 
 const PROVIDER_BASE: Record<string, string> = {
   openai: 'https://api.openai.com',
@@ -12,6 +15,8 @@ const WINDOW_MS = 60_000;
 const concurrency = new Map<string, number>();
 interface Bucket { tokens: number; last: number; }
 const buckets = new Map<string, Bucket>();
+const spendTotals = new Map<string, number>();
+const alerted = new Set<string>();
 
 function enterConcurrency(key: string): boolean {
   const current = concurrency.get(key) || 0;
@@ -40,8 +45,17 @@ function allowRequest(key: string): boolean {
   return true;
 }
 
+async function sendAlert(env: Env, msg: string): Promise<void> {
+  if (!env.WEBHOOK_URL) return;
+  await fetch(env.WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: msg }),
+  });
+}
+
 export default {
-  async fetch(request: Request): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
     const apiKey = request.headers.get('Authorization');
     if (!apiKey) {
       return new Response('Missing Authorization header', { status: 401 });
@@ -62,6 +76,14 @@ export default {
       return new Response('Unknown provider', { status: 400 });
     }
 
+    const creditLimit = parseFloat(env.CREDIT_LIMIT || '0');
+    const spent = spendTotals.get(apiKey) || 0;
+    if (creditLimit > 0 && spent >= creditLimit) {
+      await sendAlert(env, `API key ${apiKey} exceeded credit limit`);
+      exitConcurrency(apiKey);
+      return new Response('Credit limit exceeded', { status: 429 });
+    }
+
     const url = new URL(request.url);
     const targetUrl = base + url.pathname + url.search;
     const proxyReq = new Request(targetUrl, request);
@@ -69,6 +91,15 @@ export default {
 
     try {
       const resp = await fetch(proxyReq);
+      const cost = parseFloat(resp.headers.get('X-Usage-Cost') || '0');
+      if (creditLimit > 0 && cost > 0) {
+        const newTotal = spent + cost;
+        spendTotals.set(apiKey, newTotal);
+        if (newTotal >= creditLimit && !alerted.has(apiKey)) {
+          alerted.add(apiKey);
+          await sendAlert(env, `API key ${apiKey} hit credit limit`);
+        }
+      }
       return resp;
     } finally {
       exitConcurrency(apiKey);
