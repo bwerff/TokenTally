@@ -1,5 +1,5 @@
 import sqlite3
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 
 
 class MarkupRuleStore:
@@ -43,7 +43,7 @@ class MarkupRuleStore:
             )
             conn.commit()
 
-    def get_rule(self, rule_id: str) -> Optional[Dict[str, any]]:
+    def get_rule(self, rule_id: str) -> Optional[Dict[str, Any]]:
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.execute(
                 """
@@ -58,7 +58,7 @@ class MarkupRuleStore:
             return dict(zip(keys, row))
         return None
 
-    def list_rules(self) -> List[Dict[str, any]]:
+    def list_rules(self) -> List[Dict[str, Any]]:
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.execute(
                 "SELECT id, provider, model, markup, effective_date FROM markup_rules"
@@ -67,7 +67,7 @@ class MarkupRuleStore:
         keys = ["id", "provider", "model", "markup", "effective_date"]
         return [dict(zip(keys, row)) for row in rows]
 
-    def update_rule(self, rule_id: str, **updates: any) -> None:
+    def update_rule(self, rule_id: str, **updates: Any) -> None:
         fields = []
         values = []
         for key, value in updates.items():
@@ -96,7 +96,7 @@ def get_effective_markup(
     model: str,
     ts: str,
     db_path: str = "markup_rules.db",
-) -> Optional[Dict[str, any]]:
+) -> Optional[Dict[str, Any]]:
     """Return the markup rule active at ``ts`` for the given provider/model."""
 
     with sqlite3.connect(db_path) as conn:

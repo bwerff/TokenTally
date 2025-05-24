@@ -4,7 +4,7 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
 from hashlib import sha256
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 
 
 @dataclass
@@ -74,7 +74,7 @@ class AuditLog:
             )
             conn.commit()
 
-    def list_events(self, customer_id: Optional[str] = None) -> List[Dict[str, any]]:
+    def list_events(self, customer_id: Optional[str] = None) -> List[Dict[str, Any]]:
         query = "SELECT event_id, ts, customer_id, prompt_hash, token_count, prev_hash FROM audit_events"
         params: tuple[str, ...] = ()
         if customer_id:
