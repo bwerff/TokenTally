@@ -247,3 +247,14 @@ an audit log, shown in the Usage and Audit sections of the UI.
 ## Client SDKs
 Lightweight SDK wrappers live in `clients/` for TypeScript, Python and Go. Each
 offers a `get_usage()` helper that mirrors the REST endpoint used by the portal.
+
+## Payout helper
+Use `PayoutService` to record payouts in `ledger.db` and read their status:
+
+```python
+from token_tally import PayoutService
+
+svc = PayoutService()
+svc.record_payout("p1", "user42", 1000, "USD")
+status = svc.get_status("p1")
+```
