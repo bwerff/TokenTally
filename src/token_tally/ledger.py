@@ -1,5 +1,10 @@
 import sqlite3
+from datetime import datetime
 from typing import Optional, Dict, Any
+
+from . import fx
+from . import markup
+
 
 
 class Ledger:
@@ -132,7 +137,30 @@ class Ledger:
         units: int,
         unit_cost: float,
         invoice_cycle: str,
+        provider: Optional[str] = None,
+        model: Optional[str] = None,
+        currency: str = "USD",
+        fx_rates: Optional[dict] = None,
+        ts: Optional[datetime] = None,
+        markup_db_path: Optional[str] = None,
     ) -> None:
+        ts = ts or datetime.utcnow()
+        markup_rule = None
+        if provider and model:
+            rule = markup.get_effective_markup(
+                provider,
+                model,
+                ts.isoformat(),
+                db_path=markup_db_path or "markup_rules.db",
+            )
+            markup_rule = rule["markup"] if rule else 0.0
+        else:
+            markup_rule = 0.0
+
+        final_cost = unit_cost * (1 + markup_rule)
+        if currency != "USD" and fx_rates:
+            final_cost = fx.convert(final_cost, currency, "USD", fx_rates)
+
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 """
@@ -141,7 +169,7 @@ class Ledger:
                 )
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (event_id, customer_id, feature, units, unit_cost, invoice_cycle),
+                (event_id, customer_id, feature, units, final_cost, invoice_cycle),
             )
             conn.commit()
 
@@ -179,6 +207,7 @@ class Ledger:
             keys = ["customer_id", "units", "unit_cost"]
             return [dict(zip(keys, row)) for row in cur.fetchall()]
 
+
     def get_usage_events_by_range(self, start: str, end: str):
         """Return usage events between ``start`` and ``end`` dates (inclusive)."""
         with sqlite3.connect(self.db_path) as conn:
@@ -192,7 +221,6 @@ class Ledger:
             )
             keys = ["customer_id", "feature", "units", "unit_cost", "ts"]
             return [dict(zip(keys, row)) for row in cur.fetchall()]
-
 
     def create_invoice(
         self, invoice_id: str, customer_id: str, cycle: str, amount: float

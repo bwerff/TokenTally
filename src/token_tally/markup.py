@@ -89,3 +89,30 @@ class MarkupRuleStore:
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("DELETE FROM markup_rules WHERE id = ?", (rule_id,))
             conn.commit()
+
+
+def get_effective_markup(
+    provider: str,
+    model: str,
+    ts: str,
+    db_path: str = "markup_rules.db",
+) -> Optional[Dict[str, any]]:
+    """Return the markup rule active at ``ts`` for the given provider/model."""
+
+    with sqlite3.connect(db_path) as conn:
+        cur = conn.execute(
+            """
+            SELECT id, provider, model, markup, effective_date
+            FROM markup_rules
+            WHERE provider = ? AND model = ? AND effective_date <= ?
+            ORDER BY effective_date DESC
+            LIMIT 1
+            """,
+            (provider, model, ts),
+        )
+        row = cur.fetchone()
+
+    if row:
+        keys = ["id", "provider", "model", "markup", "effective_date"]
+        return dict(zip(keys, row))
+    return None
