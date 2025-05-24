@@ -110,6 +110,8 @@ Finance leaders are sick of reconciling five-and-six-figure “mystery bills” 
 
    * Time-series forecast (ARIMA baseline) computed hourly.
    * Webhook & Slack integration.
+   * `python -m token_tally.budget_alert ledger.db https://hook` can be run
+     hourly via cron to notify when a customer exceeds their monthly budget.
    * Hard-stop capability (`HTTP 429`) if customer hits credit limit.
 
 7. **Admin Portal** (Next.js + tRPC)
