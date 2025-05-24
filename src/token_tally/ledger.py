@@ -1,10 +1,9 @@
 import sqlite3
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional, Dict, Any
 
 from . import fx
 from . import markup
-
 
 
 class Ledger:
@@ -144,7 +143,7 @@ class Ledger:
         ts: Optional[datetime] = None,
         markup_db_path: Optional[str] = None,
     ) -> None:
-        ts = ts or datetime.utcnow()
+        ts = ts or datetime.now(UTC)
         markup_rule = None
         if provider and model:
             rule = markup.get_effective_markup(
@@ -206,7 +205,6 @@ class Ledger:
             )
             keys = ["customer_id", "units", "unit_cost"]
             return [dict(zip(keys, row)) for row in cur.fetchall()]
-
 
     def get_usage_events_by_range(self, start: str, end: str):
         """Return usage events between ``start`` and ``end`` dates (inclusive)."""
