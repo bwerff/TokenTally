@@ -1,8 +1,8 @@
-# Receipt Processor Microservice
+# Receipt Processor (archived)
 
-This service performs basic OCR on uploaded receipt images, matches line items to
-known offers and stores redemption records. Any receipt lines that do not match
-an offer are logged for manual review.
+This lightweight service performs OCR on uploaded receipt images. It was
+originally used for matching lines against promotional offers but is no longer
+maintained as part of the TokenTally gateway.
 
 ### Running the server
 

@@ -3,16 +3,21 @@
 **AI-Usage Meter & Billing Gateway – Product Requirements Document (PRD)**
 *Last updated: 24 May 2025*
 
+TokenTally is a drop-in gateway that meters AI usage across multiple providers
+and turns it into clean invoices. The sections below outline our mission, key
+goals, measurable success metrics, detailed functional requirements and the
+phased delivery plan.
+
 ---
 
-### 1  |  Why this product exists
+### 1  |  Mission
 
 Finance leaders are sick of reconciling five-and-six-figure “mystery bills” from OpenAI, Anthropic, GPU hosts and half-a-dozen home-rolled models. Devs keep switching models, prompts retry, and nobody can prove which customer or feature burned the budget. Existing FinOps suites watch VMs and S3 buckets, not tokens and context windows.
 **We’ll plant ourselves directly in the request path, meter every token/second, stamp it with price, and push an itemised invoice into Stripe (or NetSuite, Chargebee, etc.). Once we’re the first hop, ripping us out hurts—exactly how Plaid got sticky.**
 
 ---
 
-### 2  |  Goals & non-goals
+### 2  |  Goals & Non-Goals
 
 |                                                                              | In scope | Out of scope                                                       |
 | ---------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------ |
@@ -24,7 +29,7 @@ Finance leaders are sick of reconciling five-and-six-figure “mystery bills” 
 
 ---
 
-### 3  |  Success metrics
+### 3  |  Success Metrics
 
 * < 100 ms added P95 latency to any request routed through the gateway
 * Token counts match vendor invoices **±0.1 %** on audit sample
@@ -67,7 +72,7 @@ Finance leaders are sick of reconciling five-and-six-figure “mystery bills” 
 
 ---
 
-### 7  |  Functional requirements
+### 7  |  Functional Requirements
 
 1. **Gateway Edge**
 
@@ -168,7 +173,7 @@ Stripe Invoice → Customer
 
 ---
 
-### 11  |  Phased delivery plan
+### 11  |  Phased Delivery Plan
 
 | Phase                            | Target                     | Must-have deliverables                                                                       |
 | -------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------- |
@@ -213,20 +218,7 @@ Stripe Invoice → Customer
 | Line up design-partner LOIs (3 SaaS, 2 Enterprise) | Sales    | 30 Jun 2025 |
 
 ---
-### 15  |  Payout and Ledger
-
-Our Stripe payout client allows cash-back payouts and records each payout in a local SQLite ledger. Use `STRIPE_API_KEY` in your environment and call the helper class:
-
-```python
-from token_tally.payout import StripePayoutClient
-client = StripePayoutClient(api_key="sk_test_...")
-client.create_payout("out_123", user_id="u1", amount=1000, currency="usd")
-```
-
-This writes a record to `ledger.db` and you can query status via `retrieve_payout`.
-
-
 **Bottom line:** This gateway solves a *real*, boring accounting problem nobody wants to touch. Nail deterministic metering, stay invisible in the hot path, and invoice cleanly—everything else is a feature-creep distraction.
 
 ## Frontend
-A basic Next.js + Tailwind app lives in `frontend/`. Run `npm install` inside that folder and `npm run dev` to start it locally. The app allows users to register, log in, browse offers and upload receipts via API calls to `NEXT_PUBLIC_BACKEND_URL`.
+A simple Next.js + Tailwind admin portal lives in `frontend/`. Run `npm install` inside that folder and `npm run dev` to start it locally. The app lets you manage API keys and view usage reports via calls to `NEXT_PUBLIC_BACKEND_URL`.
