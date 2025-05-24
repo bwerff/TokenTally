@@ -2,7 +2,7 @@ import sqlite3
 from typing import Optional, Dict, Any
 
 class Ledger:
-    """Simple SQLite ledger for payout entries."""
+    """Simple SQLite ledger for payouts and usage events."""
 
     def __init__(self, db_path: str = "ledger.db"):
         self.db_path = db_path
@@ -23,6 +23,45 @@ class Ledger:
                 )
                 """
             )
+
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS usage_events (
+                    id TEXT PRIMARY KEY,
+                    customer_id TEXT NOT NULL,
+                    feature TEXT NOT NULL,
+                    units INTEGER NOT NULL,
+                    unit_cost REAL NOT NULL,
+                    ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    stripe_status TEXT NOT NULL DEFAULT 'pending',
+                    stripe_record_id TEXT,
+                    invoice_cycle TEXT NOT NULL
+                )
+                """
+            )
+
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS invoices (
+                    id TEXT PRIMARY KEY,
+                    customer_id TEXT NOT NULL,
+                    cycle TEXT NOT NULL,
+                    amount REAL NOT NULL
+                )
+                """
+            )
+
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS credit_notes (
+                    id TEXT PRIMARY KEY,
+                    invoice_id TEXT NOT NULL,
+                    amount REAL NOT NULL,
+                    description TEXT
+                )
+                """
+            )
+
             conn.commit()
 
     def add_payout(self, payout_id: str, user_id: str, amount: int, currency: str,
@@ -57,3 +96,68 @@ class Ledger:
                 keys = ["id", "user_id", "amount", "currency", "status", "processor", "created_at"]
                 return dict(zip(keys, row))
             return None
+
+    # Usage event helpers -------------------------------------------------
+
+    def add_usage_event(
+        self,
+        event_id: str,
+        customer_id: str,
+        feature: str,
+        units: int,
+        unit_cost: float,
+        invoice_cycle: str,
+    ) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO usage_events (
+                    id, customer_id, feature, units, unit_cost, invoice_cycle
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (event_id, customer_id, feature, units, unit_cost, invoice_cycle),
+            )
+            conn.commit()
+
+    def get_pending_usage_events(self):
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute(
+                "SELECT id, customer_id, feature, units, unit_cost, ts, invoice_cycle "
+                "FROM usage_events WHERE stripe_status = 'pending'"
+            )
+            keys = ["id", "customer_id", "feature", "units", "unit_cost", "ts", "invoice_cycle"]
+            return [dict(zip(keys, row)) for row in cur.fetchall()]
+
+    def mark_usage_synced(self, event_id: str, record_id: str) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "UPDATE usage_events SET stripe_status = 'synced', stripe_record_id = ? WHERE id = ?",
+                (record_id, event_id),
+            )
+            conn.commit()
+
+    def get_usage_events_by_cycle(self, cycle: str):
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute(
+                "SELECT customer_id, units, unit_cost FROM usage_events WHERE invoice_cycle = ?",
+                (cycle,),
+            )
+            keys = ["customer_id", "units", "unit_cost"]
+            return [dict(zip(keys, row)) for row in cur.fetchall()]
+
+    def create_invoice(self, invoice_id: str, customer_id: str, cycle: str, amount: float) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO invoices (id, customer_id, cycle, amount) VALUES (?, ?, ?, ?)",
+                (invoice_id, customer_id, cycle, amount),
+            )
+            conn.commit()
+
+    def create_credit_note(self, note_id: str, invoice_id: str, amount: float, description: str) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO credit_notes (id, invoice_id, amount, description) VALUES (?, ?, ?, ?)",
+                (note_id, invoice_id, amount, description),
+            )
+            conn.commit()
