@@ -1,0 +1,91 @@
+import sqlite3
+from typing import Optional, Dict, List
+
+
+class MarkupRuleStore:
+    """SQLite-backed store for markup rules."""
+
+    def __init__(self, db_path: str = "markup_rules.db"):
+        self.db_path = db_path
+        self._ensure_table()
+
+    def _ensure_table(self) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS markup_rules (
+                    id TEXT PRIMARY KEY,
+                    provider TEXT NOT NULL,
+                    model TEXT NOT NULL,
+                    markup REAL NOT NULL,
+                    effective_date TEXT NOT NULL
+                )
+                """
+            )
+            conn.commit()
+
+    def create_rule(
+        self,
+        rule_id: str,
+        provider: str,
+        model: str,
+        markup: float,
+        effective_date: str,
+    ) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO markup_rules
+                    (id, provider, model, markup, effective_date)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (rule_id, provider, model, markup, effective_date),
+            )
+            conn.commit()
+
+    def get_rule(self, rule_id: str) -> Optional[Dict[str, any]]:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute(
+                """
+                SELECT id, provider, model, markup, effective_date
+                FROM markup_rules WHERE id = ?
+                """,
+                (rule_id,),
+            )
+            row = cur.fetchone()
+        if row:
+            keys = ["id", "provider", "model", "markup", "effective_date"]
+            return dict(zip(keys, row))
+        return None
+
+    def list_rules(self) -> List[Dict[str, any]]:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute(
+                "SELECT id, provider, model, markup, effective_date FROM markup_rules"
+            )
+            rows = cur.fetchall()
+        keys = ["id", "provider", "model", "markup", "effective_date"]
+        return [dict(zip(keys, row)) for row in rows]
+
+    def update_rule(self, rule_id: str, **updates: any) -> None:
+        fields = []
+        values = []
+        for key, value in updates.items():
+            if key not in {"provider", "model", "markup", "effective_date"}:
+                continue
+            fields.append(f"{key} = ?")
+            values.append(value)
+        if not fields:
+            return
+        values.append(rule_id)
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                f"UPDATE markup_rules SET {', '.join(fields)} WHERE id = ?",
+                values,
+            )
+            conn.commit()
+
+    def delete_rule(self, rule_id: str) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("DELETE FROM markup_rules WHERE id = ?", (rule_id,))
+            conn.commit()

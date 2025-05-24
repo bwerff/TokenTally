@@ -97,7 +97,7 @@ Finance leaders are sick of reconciling five-and-six-figure “mystery bills” 
 
 4. **Pricing & Markup Rules**
 
-   * CRUD via REST + Admin UI.
+   * CRUD via REST endpoints and a simple Admin UI.
    * Versioned; effective-date field prevents silent retroactive changes.
    * Supports FX conversion with daily ECB spot rates.
 
