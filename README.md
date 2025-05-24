@@ -224,4 +224,11 @@ Stripe Invoice → Customer
 **Bottom line:** This gateway solves a *real*, boring accounting problem nobody wants to touch. Nail deterministic metering, stay invisible in the hot path, and invoice cleanly—everything else is a feature-creep distraction.
 
 ## Frontend
-A simple Next.js + Tailwind admin portal lives in `frontend/`. Run `npm install` inside that folder and `npm run dev` to start it locally. The app lets you manage API keys and view usage reports via calls to `NEXT_PUBLIC_BACKEND_URL`.
+A Next.js + tRPC admin portal lives in `frontend/`. Run `npm install` in that
+folder and `npm run dev` to start it locally. The portal uses NextAuth for SSO
+(Google or any SAML 2.0 provider). It exposes tRPC endpoints for usage data and
+an audit log, shown in the Usage and Audit sections of the UI.
+
+## Client SDKs
+Lightweight SDK wrappers live in `clients/` for TypeScript, Python and Go. Each
+offers a `get_usage()` helper that mirrors the REST endpoint used by the portal.
