@@ -1,0 +1,4 @@
+[
+  {"upc": "012345678905", "name": "Acme Cereal", "offer_id": "acme_cereal"},
+  {"upc": "123456789012", "name": "Budget Milk", "offer_id": "budget_milk"}
+]
