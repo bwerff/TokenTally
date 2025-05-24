@@ -125,9 +125,9 @@ Finance leaders are sick of reconciling five-and-six-figure “mystery bills” 
 
 9. **Compliance Pack**
 
-   * SOC 2 Type I within 9 months; Type II within 18 months.
-   * Data residency: option to pin entire pipeline to EU region.
-   * Private-cloud (Helm chart) for Enterprise tier.
+   * SOC 2 roadmap published; see "SOC 2 & Data Residency" below.
+   * Data residency: US or EU-managed clusters, or self-host via Helm.
+   * Private-cloud (Helm chart) for Enterprise tier (see `helm/token-tally`).
 
 ---
 
@@ -222,6 +222,21 @@ Stripe Invoice → Customer
 
 ---
 **Bottom line:** This gateway solves a *real*, boring accounting problem nobody wants to touch. Nail deterministic metering, stay invisible in the hot path, and invoice cleanly—everything else is a feature-creep distraction.
+
+## SOC 2 & Data Residency
+
+### SOC 2 roadmap
+
+| Milestone                     | Target    |
+| ----------------------------- | --------- |
+| Policies & risk assessment    | Aug 2025  |
+| Type I audit                  | Q1 2026   |
+| Continuous monitoring in place| Q2 2026   |
+| Type II report                | Q4 2026   |
+
+### Data residency options
+
+TokenTally runs in US-East by default. Enterprise customers may pin all data processing to the EU region or deploy the gateway inside their own Kubernetes clusters using the Helm chart under `helm/token-tally`.
 
 ## Frontend
 A simple Next.js + Tailwind admin portal lives in `frontend/`. Run `npm install` inside that folder and `npm run dev` to start it locally. The app lets you manage API keys and view usage reports via calls to `NEXT_PUBLIC_BACKEND_URL`.
