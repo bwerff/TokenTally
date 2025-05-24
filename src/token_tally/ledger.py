@@ -179,6 +179,21 @@ class Ledger:
             keys = ["customer_id", "units", "unit_cost"]
             return [dict(zip(keys, row)) for row in cur.fetchall()]
 
+    def get_usage_events_by_range(self, start: str, end: str):
+        """Return usage events between ``start`` and ``end`` dates (inclusive)."""
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute(
+                """
+                SELECT customer_id, feature, units, unit_cost, ts
+                FROM usage_events
+                WHERE date(ts) >= date(?) AND date(ts) <= date(?)
+                """,
+                (start, end),
+            )
+            keys = ["customer_id", "feature", "units", "unit_cost", "ts"]
+            return [dict(zip(keys, row)) for row in cur.fetchall()]
+
+
     def create_invoice(
         self, invoice_id: str, customer_id: str, cycle: str, amount: float
     ) -> None:
