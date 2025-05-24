@@ -243,8 +243,14 @@ TokenTally runs in US-East by default. Enterprise customers may pin all data pro
 ## Frontend
 A Next.js + tRPC admin portal lives in `frontend/`. Run `npm install` in that
 folder and `npm run dev` to start it locally. The portal uses NextAuth for SSO
-(Google or any SAML 2.0 provider). It exposes tRPC endpoints for usage data and
-an audit log, shown in the Usage and Audit sections of the UI.
+(Google or any SAML 2.0 provider). Set the following variables to enable each
+provider:
+
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` – Google sign-in
+- `SAML_ENTRYPOINT`, `SAML_ISSUER` and `SAML_CERT` – generic SAML provider
+
+The frontend exposes tRPC endpoints for usage data and an audit log, shown in
+the Usage and Audit sections of the UI.
 
 ## Client SDKs
 Lightweight SDK wrappers live in `clients/` for TypeScript, Python and Go. Each
