@@ -1,4 +1,4 @@
-from .usage_ledger import UsageEvent, UsageLedger
+from .usage_ledger import UsageEvent, UsageLedger, ClickHouseUsageLedger
 from .audit import AuditLog
 from .token_counter import (
     count_openai_tokens,
@@ -15,6 +15,7 @@ from .alerts import send_webhook_message
 __all__ = [
     "UsageEvent",
     "UsageLedger",
+    "ClickHouseUsageLedger",
     "count_openai_tokens",
     "count_anthropic_tokens",
     "count_local_tokens",
@@ -25,6 +26,7 @@ __all__ = [
     "PayoutService",
     "UsageEvent",
     "UsageLedger",
+    "ClickHouseUsageLedger",
     "AuditLog",
     "arima_forecast",
     "forecast_next_hour",
