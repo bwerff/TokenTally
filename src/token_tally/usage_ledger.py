@@ -1,0 +1,85 @@
+"""Usage event ledger with optional Kafka streaming."""
+
+from dataclasses import dataclass, asdict
+from datetime import datetime
+from typing import Optional, Iterable
+import json
+import sqlite3
+
+try:
+    from kafka import KafkaProducer
+except ImportError:  # pragma: no cover - kafka-python not installed
+    KafkaProducer = None  # type: ignore
+
+
+@dataclass
+class UsageEvent:
+    event_id: str
+    ts: datetime
+    customer_id: str
+    provider: str
+    model: str
+    metric_type: str
+    units: float
+    unit_cost_usd: float
+
+
+class UsageLedger:
+    """Stores usage events in an append-only SQLite table."""
+
+    def __init__(self, db_path: str = "usage_ledger.db",
+                 kafka_servers: Optional[Iterable[str]] = None,
+                 kafka_topic: str = "usage_events"):
+        self.db_path = db_path
+        self.kafka_topic = kafka_topic
+        self.producer = None
+        if kafka_servers and KafkaProducer:
+            self.producer = KafkaProducer(
+                bootstrap_servers=list(kafka_servers),
+                value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+            )
+        self._ensure_table()
+
+    def _ensure_table(self) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS usage_events (
+                    event_id TEXT PRIMARY KEY,
+                    ts TEXT NOT NULL,
+                    customer_id TEXT NOT NULL,
+                    provider TEXT NOT NULL,
+                    model TEXT NOT NULL,
+                    metric_type TEXT NOT NULL,
+                    units REAL NOT NULL,
+                    unit_cost_usd REAL NOT NULL
+                )
+                """
+            )
+            conn.commit()
+
+    def add_event(self, event: UsageEvent) -> None:
+        """Insert event and optionally stream to Kafka."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO usage_events (
+                    event_id, ts, customer_id, provider, model,
+                    metric_type, units, unit_cost_usd
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    event.event_id,
+                    event.ts.isoformat(),
+                    event.customer_id,
+                    event.provider,
+                    event.model,
+                    event.metric_type,
+                    event.units,
+                    event.unit_cost_usd,
+                ),
+            )
+            conn.commit()
+        if self.producer:
+            self.producer.send(self.kafka_topic, asdict(event))
+            self.producer.flush()

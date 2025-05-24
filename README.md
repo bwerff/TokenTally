@@ -92,6 +92,8 @@ Finance leaders are sick of reconciling five-and-six-figure “mystery bills” 
    * Append-only table in ClickHouse (partition by day).
    * Schema: `event_id, ts, customer_id, provider, model, metric_type, units, unit_cost_usd`.
    * Outbox stream → Kafka → Stripe Billing API nightly.
+   * Python helpers in `token_tally.usage_ledger` implement this schema and
+     emit each event to Kafka when recorded.
 
 4. **Pricing & Markup Rules**
 
