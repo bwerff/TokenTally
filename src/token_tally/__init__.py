@@ -8,7 +8,7 @@ from .token_counter import (
 )
 from .gpu_metrics import parse_dcgm_gpu_minutes
 from .ledger import Ledger
-from .payout import StripePayoutClient
+from .payout import StripePayoutClient, PayoutService
 from .forecast import arima_forecast, forecast_next_hour
 from .alerts import send_webhook_message
 
@@ -22,6 +22,7 @@ __all__ = [
     "parse_dcgm_gpu_minutes",
     "Ledger",
     "StripePayoutClient",
+    "PayoutService",
     "UsageEvent",
     "UsageLedger",
     "AuditLog",
