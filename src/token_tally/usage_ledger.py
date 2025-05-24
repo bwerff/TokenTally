@@ -1,7 +1,7 @@
 """Usage event ledger with optional Kafka streaming."""
 
 from dataclasses import dataclass, asdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, Iterable
 import json
 import sqlite3
@@ -27,9 +27,12 @@ class UsageEvent:
 class UsageLedger:
     """Stores usage events in an append-only SQLite table."""
 
-    def __init__(self, db_path: str = "usage_ledger.db",
-                 kafka_servers: Optional[Iterable[str]] = None,
-                 kafka_topic: str = "usage_events"):
+    def __init__(
+        self,
+        db_path: str = "usage_ledger.db",
+        kafka_servers: Optional[Iterable[str]] = None,
+        kafka_topic: str = "usage_events",
+    ):
         self.db_path = db_path
         self.kafka_topic = kafka_topic
         self.producer = None
@@ -83,3 +86,20 @@ class UsageLedger:
         if self.producer:
             self.producer.send(self.kafka_topic, asdict(event))
             self.producer.flush()
+
+    def get_hourly_totals(self, hours: int) -> list[float]:
+        """Return spend totals for the last ``hours`` hours."""
+        end = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
+        start = end - timedelta(hours=hours)
+        totals = [0.0 for _ in range(hours)]
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute(
+                "SELECT ts, units, unit_cost_usd FROM usage_events WHERE ts >= ? AND ts < ?",
+                (start.isoformat(), end.isoformat()),
+            )
+            for ts_str, units, unit_cost in cur.fetchall():
+                ts = datetime.fromisoformat(ts_str)
+                idx = int((ts - start).total_seconds() // 3600)
+                if 0 <= idx < hours:
+                    totals[idx] += units * unit_cost
+        return totals
