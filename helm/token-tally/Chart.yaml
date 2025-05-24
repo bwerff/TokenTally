@@ -1,0 +1,6 @@
+apiVersion: v2
+name: token-tally
+description: TokenTally private cloud deployment
+version: 0.1.0
+appVersion: "0.1.0"
+type: application
