@@ -1,6 +1,7 @@
 import sqlite3
 from typing import Optional, Dict, Any
 
+
 class Ledger:
     """Simple SQLite ledger for payouts and usage events."""
 
@@ -62,10 +63,26 @@ class Ledger:
                 """
             )
 
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS budgets (
+                    customer_id TEXT PRIMARY KEY,
+                    monthly_limit REAL NOT NULL
+                )
+                """
+            )
+
             conn.commit()
 
-    def add_payout(self, payout_id: str, user_id: str, amount: int, currency: str,
-                   status: str, processor: str) -> None:
+    def add_payout(
+        self,
+        payout_id: str,
+        user_id: str,
+        amount: int,
+        currency: str,
+        status: str,
+        processor: str,
+    ) -> None:
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 """
@@ -93,7 +110,15 @@ class Ledger:
             )
             row = cur.fetchone()
             if row:
-                keys = ["id", "user_id", "amount", "currency", "status", "processor", "created_at"]
+                keys = [
+                    "id",
+                    "user_id",
+                    "amount",
+                    "currency",
+                    "status",
+                    "processor",
+                    "created_at",
+                ]
                 return dict(zip(keys, row))
             return None
 
@@ -126,7 +151,15 @@ class Ledger:
                 "SELECT id, customer_id, feature, units, unit_cost, ts, invoice_cycle "
                 "FROM usage_events WHERE stripe_status = 'pending'"
             )
-            keys = ["id", "customer_id", "feature", "units", "unit_cost", "ts", "invoice_cycle"]
+            keys = [
+                "id",
+                "customer_id",
+                "feature",
+                "units",
+                "unit_cost",
+                "ts",
+                "invoice_cycle",
+            ]
             return [dict(zip(keys, row)) for row in cur.fetchall()]
 
     def mark_usage_synced(self, event_id: str, record_id: str) -> None:
@@ -146,7 +179,9 @@ class Ledger:
             keys = ["customer_id", "units", "unit_cost"]
             return [dict(zip(keys, row)) for row in cur.fetchall()]
 
-    def create_invoice(self, invoice_id: str, customer_id: str, cycle: str, amount: float) -> None:
+    def create_invoice(
+        self, invoice_id: str, customer_id: str, cycle: str, amount: float
+    ) -> None:
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO invoices (id, customer_id, cycle, amount) VALUES (?, ?, ?, ?)",
@@ -154,10 +189,39 @@ class Ledger:
             )
             conn.commit()
 
-    def create_credit_note(self, note_id: str, invoice_id: str, amount: float, description: str) -> None:
+    def create_credit_note(
+        self, note_id: str, invoice_id: str, amount: float, description: str
+    ) -> None:
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO credit_notes (id, invoice_id, amount, description) VALUES (?, ?, ?, ?)",
                 (note_id, invoice_id, amount, description),
             )
             conn.commit()
+
+    # Budget helpers ------------------------------------------------------
+
+    def set_budget(self, customer_id: str, monthly_limit: float) -> None:
+        """Insert or update a monthly budget for a customer."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO budgets (customer_id, monthly_limit) VALUES (?, ?)",
+                (customer_id, monthly_limit),
+            )
+            conn.commit()
+
+    def get_budget(self, customer_id: str) -> Optional[float]:
+        """Return the monthly limit for the given customer, if set."""
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute(
+                "SELECT monthly_limit FROM budgets WHERE customer_id = ?",
+                (customer_id,),
+            )
+            row = cur.fetchone()
+            return float(row[0]) if row else None
+
+    def list_budgets(self) -> list[tuple[str, float]]:
+        """Return ``[(customer_id, monthly_limit), ...]`` for all budgets."""
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute("SELECT customer_id, monthly_limit FROM budgets")
+            return [(row[0], float(row[1])) for row in cur.fetchall()]
