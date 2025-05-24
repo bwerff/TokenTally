@@ -1,5 +1,10 @@
 import sqlite3
+from datetime import datetime
 from typing import Optional, Dict, Any
+
+from . import fx
+from . import markup
+
 
 class Ledger:
     """Simple SQLite ledger for payouts and usage events."""
@@ -64,8 +69,15 @@ class Ledger:
 
             conn.commit()
 
-    def add_payout(self, payout_id: str, user_id: str, amount: int, currency: str,
-                   status: str, processor: str) -> None:
+    def add_payout(
+        self,
+        payout_id: str,
+        user_id: str,
+        amount: int,
+        currency: str,
+        status: str,
+        processor: str,
+    ) -> None:
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 """
@@ -93,7 +105,15 @@ class Ledger:
             )
             row = cur.fetchone()
             if row:
-                keys = ["id", "user_id", "amount", "currency", "status", "processor", "created_at"]
+                keys = [
+                    "id",
+                    "user_id",
+                    "amount",
+                    "currency",
+                    "status",
+                    "processor",
+                    "created_at",
+                ]
                 return dict(zip(keys, row))
             return None
 
@@ -107,7 +127,30 @@ class Ledger:
         units: int,
         unit_cost: float,
         invoice_cycle: str,
+        provider: Optional[str] = None,
+        model: Optional[str] = None,
+        currency: str = "USD",
+        fx_rates: Optional[dict] = None,
+        ts: Optional[datetime] = None,
+        markup_db_path: Optional[str] = None,
     ) -> None:
+        ts = ts or datetime.utcnow()
+        markup_rule = None
+        if provider and model:
+            rule = markup.get_effective_markup(
+                provider,
+                model,
+                ts.isoformat(),
+                db_path=markup_db_path or "markup_rules.db",
+            )
+            markup_rule = rule["markup"] if rule else 0.0
+        else:
+            markup_rule = 0.0
+
+        final_cost = unit_cost * (1 + markup_rule)
+        if currency != "USD" and fx_rates:
+            final_cost = fx.convert(final_cost, currency, "USD", fx_rates)
+
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 """
@@ -116,7 +159,7 @@ class Ledger:
                 )
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (event_id, customer_id, feature, units, unit_cost, invoice_cycle),
+                (event_id, customer_id, feature, units, final_cost, invoice_cycle),
             )
             conn.commit()
 
@@ -126,7 +169,15 @@ class Ledger:
                 "SELECT id, customer_id, feature, units, unit_cost, ts, invoice_cycle "
                 "FROM usage_events WHERE stripe_status = 'pending'"
             )
-            keys = ["id", "customer_id", "feature", "units", "unit_cost", "ts", "invoice_cycle"]
+            keys = [
+                "id",
+                "customer_id",
+                "feature",
+                "units",
+                "unit_cost",
+                "ts",
+                "invoice_cycle",
+            ]
             return [dict(zip(keys, row)) for row in cur.fetchall()]
 
     def mark_usage_synced(self, event_id: str, record_id: str) -> None:
@@ -146,7 +197,9 @@ class Ledger:
             keys = ["customer_id", "units", "unit_cost"]
             return [dict(zip(keys, row)) for row in cur.fetchall()]
 
-    def create_invoice(self, invoice_id: str, customer_id: str, cycle: str, amount: float) -> None:
+    def create_invoice(
+        self, invoice_id: str, customer_id: str, cycle: str, amount: float
+    ) -> None:
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO invoices (id, customer_id, cycle, amount) VALUES (?, ?, ?, ?)",
@@ -154,7 +207,9 @@ class Ledger:
             )
             conn.commit()
 
-    def create_credit_note(self, note_id: str, invoice_id: str, amount: float, description: str) -> None:
+    def create_credit_note(
+        self, note_id: str, invoice_id: str, amount: float, description: str
+    ) -> None:
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO credit_notes (id, invoice_id, amount, description) VALUES (?, ?, ?, ?)",
