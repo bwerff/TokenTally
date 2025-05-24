@@ -1,0 +1,14 @@
+{
+  "name": "token-tally-gateway-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "wrangler dev",
+    "build": "wrangler publish"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "wrangler": "^3.58.0"
+  }
+}
