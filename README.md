@@ -215,3 +215,6 @@ Stripe Invoice → Customer
 ---
 
 **Bottom line:** This gateway solves a *real*, boring accounting problem nobody wants to touch. Nail deterministic metering, stay invisible in the hot path, and invoice cleanly—everything else is a feature-creep distraction.
+
+## Frontend
+A basic Next.js + Tailwind app lives in `frontend/`. Run `npm install` inside that folder and `npm run dev` to start it locally. The app allows users to register, log in, browse offers and upload receipts via API calls to `NEXT_PUBLIC_BACKEND_URL`.
