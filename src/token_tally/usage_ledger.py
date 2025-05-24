@@ -1,7 +1,7 @@
 """Usage event ledger with optional Kafka streaming."""
 
 from dataclasses import dataclass, asdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Optional, Iterable, Any
 import json
 import sqlite3
@@ -94,7 +94,7 @@ class UsageLedger:
 
     def get_hourly_totals(self, hours: int) -> list[float]:
         """Return spend totals for the last ``hours`` hours."""
-        end = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
+        end = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
         start = end - timedelta(hours=hours)
         totals = [0.0 for _ in range(hours)]
         with sqlite3.connect(self.db_path) as conn:
@@ -178,7 +178,7 @@ class ClickHouseUsageLedger:
             self.producer.flush()
 
     def get_hourly_totals(self, hours: int) -> list[float]:
-        end = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
+        end = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
         start = end - timedelta(hours=hours)
         totals = [0.0 for _ in range(hours)]
         rows = self.client.execute(

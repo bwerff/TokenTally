@@ -1,6 +1,6 @@
 import sys
 import pathlib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 
@@ -30,7 +30,7 @@ def test_clickhouse_ledger_add_and_totals(monkeypatch):
     dummy = DummyClient()
     monkeypatch.setattr(usage_ledger, "Client", lambda *a, **k: dummy)
     ledger = ClickHouseUsageLedger(host="dummy")
-    now = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
+    now = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
     event = UsageEvent(
         event_id="e1",
         ts=now - timedelta(hours=1),

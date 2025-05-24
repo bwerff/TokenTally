@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional, Dict
 
 from .ledger import Ledger
@@ -11,7 +11,7 @@ from .alerts import send_webhook_message
 def run(db_path: str, webhook_url: str, cycle: Optional[str] = None) -> None:
     """Check spend against monthly budgets and send alerts."""
     ledger = Ledger(db_path)
-    cycle = cycle or datetime.utcnow().strftime("%Y-%m")
+    cycle = cycle or datetime.now(UTC).strftime("%Y-%m")
 
     events = ledger.get_usage_events_by_cycle(cycle)
     spend: Dict[str, float] = {}

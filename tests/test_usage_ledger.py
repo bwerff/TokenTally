@@ -1,7 +1,8 @@
 import sys
 import pathlib
+
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1] / "src"))
-from datetime import datetime
+from datetime import datetime, UTC
 from token_tally import UsageEvent, UsageLedger
 
 
@@ -10,7 +11,7 @@ def test_add_event(tmp_path):
     ledger = UsageLedger(db_path=str(db_path))
     event = UsageEvent(
         event_id="evt1",
-        ts=datetime.utcnow(),
+        ts=datetime.now(UTC),
         customer_id="cust",
         provider="openai",
         model="gpt-4",

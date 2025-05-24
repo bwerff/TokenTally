@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, UTC
 from hashlib import sha256
 from typing import List, Optional, Dict
 
@@ -47,7 +47,7 @@ class AuditLog:
         token_count: int,
         ts: Optional[datetime] = None,
     ) -> None:
-        ts = ts or datetime.utcnow()
+        ts = ts or datetime.now(UTC)
         prompt_hash = sha256(prompt.encode("utf-8")).hexdigest()
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.execute(
