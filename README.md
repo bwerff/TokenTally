@@ -84,6 +84,7 @@ Finance leaders are sick of reconciling five-and-six-figure “mystery bills” 
 
    * Language-specific tokenisers (tiktoken, Anthropic tokenizer, BytePairLite).
    * Deterministic counting regardless of streaming or retries.
+   * Token counters for OpenAI, Anthropic and local models.
    * GPU-minute parser for local models using Nvidia DCGM metrics.
 
 3. **Usage Ledger**
