@@ -6,6 +6,7 @@ from . import fx
 from . import markup
 
 
+
 class Ledger:
     """Simple SQLite ledger for payouts and usage events."""
 
@@ -63,6 +64,15 @@ class Ledger:
                     invoice_id TEXT NOT NULL,
                     amount REAL NOT NULL,
                     description TEXT
+                )
+                """
+            )
+
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS budgets (
+                    customer_id TEXT PRIMARY KEY,
+                    monthly_limit REAL NOT NULL
                 )
                 """
             )
@@ -197,6 +207,21 @@ class Ledger:
             keys = ["customer_id", "units", "unit_cost"]
             return [dict(zip(keys, row)) for row in cur.fetchall()]
 
+
+    def get_usage_events_by_range(self, start: str, end: str):
+        """Return usage events between ``start`` and ``end`` dates (inclusive)."""
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute(
+                """
+                SELECT customer_id, feature, units, unit_cost, ts
+                FROM usage_events
+                WHERE date(ts) >= date(?) AND date(ts) <= date(?)
+                """,
+                (start, end),
+            )
+            keys = ["customer_id", "feature", "units", "unit_cost", "ts"]
+            return [dict(zip(keys, row)) for row in cur.fetchall()]
+
     def create_invoice(
         self, invoice_id: str, customer_id: str, cycle: str, amount: float
     ) -> None:
@@ -216,3 +241,30 @@ class Ledger:
                 (note_id, invoice_id, amount, description),
             )
             conn.commit()
+
+    # Budget helpers ------------------------------------------------------
+
+    def set_budget(self, customer_id: str, monthly_limit: float) -> None:
+        """Insert or update a monthly budget for a customer."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO budgets (customer_id, monthly_limit) VALUES (?, ?)",
+                (customer_id, monthly_limit),
+            )
+            conn.commit()
+
+    def get_budget(self, customer_id: str) -> Optional[float]:
+        """Return the monthly limit for the given customer, if set."""
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute(
+                "SELECT monthly_limit FROM budgets WHERE customer_id = ?",
+                (customer_id,),
+            )
+            row = cur.fetchone()
+            return float(row[0]) if row else None
+
+    def list_budgets(self) -> list[tuple[str, float]]:
+        """Return ``[(customer_id, monthly_limit), ...]`` for all budgets."""
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute("SELECT customer_id, monthly_limit FROM budgets")
+            return [(row[0], float(row[1])) for row in cur.fetchall()]
