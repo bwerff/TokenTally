@@ -8,6 +8,33 @@ approximation so the helpers remain dependency-free.
 from __future__ import annotations
 
 import re
+from .metrics import TOKEN_COUNTER
+
+try:
+    from opentelemetry import trace
+except Exception:  # pragma: no cover - opentelemetry optional
+
+    class _DummySpan:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc: object) -> None:
+            pass
+
+        def set_attribute(self, *args: object, **kwargs: object) -> None:
+            pass
+
+    class _DummyTracer:
+        def start_as_current_span(self, name: str) -> _DummySpan:
+            return _DummySpan()
+
+    class _TraceModule:
+        def get_tracer(self, name: str | None = None) -> _DummyTracer:
+            return _DummyTracer()
+
+    trace = _TraceModule()  # type: ignore
+
+tracer = trace.get_tracer(__name__)
 
 try:  # Optional; only used if installed
     import tiktoken
@@ -32,27 +59,50 @@ def _regex_split(text: str) -> list[str]:
 
 def count_openai_tokens(text: str) -> int:
     """Token count for OpenAI models using ``tiktoken`` when available."""
-    if _openai_encoding is not None:
+    with tracer.start_as_current_span("count_openai_tokens") as span:
+        if _openai_encoding is not None:
+            try:
+                count = len(_openai_encoding.encode(text))
+            except Exception:  # pragma: no cover - defensive
+                count = len(_regex_split(text))
+        else:
+            count = len(_regex_split(text))
         try:
-            return len(_openai_encoding.encode(text))
-        except Exception:  # pragma: no cover - defensive
+            span.set_attribute("tokens", count)
+        except Exception:  # pragma: no cover - span may be dummy
             pass
-    return len(_regex_split(text))
+    TOKEN_COUNTER.inc(count)
+    return count
 
 
 def count_anthropic_tokens(text: str) -> int:
     """Token count for Anthropic models using ``anthropic`` when available."""
-    if _anthropic_count_tokens is not None:
+    with tracer.start_as_current_span("count_anthropic_tokens") as span:
+        if _anthropic_count_tokens is not None:
+            try:
+                count = _anthropic_count_tokens(text)
+            except Exception:  # pragma: no cover - defensive
+                count = len(_regex_split(text))
+        else:
+            count = len(_regex_split(text))
         try:
-            return _anthropic_count_tokens(text)
-        except Exception:  # pragma: no cover - defensive
+            span.set_attribute("tokens", count)
+        except Exception:  # pragma: no cover - span may be dummy
             pass
-    return len(_regex_split(text))
+    TOKEN_COUNTER.inc(count)
+    return count
 
 
 def count_local_tokens(text: str) -> int:
     """Token count for local models using a simple whitespace split."""
-    return len(text.split())
+    with tracer.start_as_current_span("count_local_tokens") as span:
+        count = len(text.split())
+        try:
+            span.set_attribute("tokens", count)
+        except Exception:  # pragma: no cover - span may be dummy
+            pass
+    TOKEN_COUNTER.inc(count)
+    return count
 
 
 _PROVIDER_MAP = {
