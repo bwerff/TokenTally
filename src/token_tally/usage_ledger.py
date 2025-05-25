@@ -123,7 +123,7 @@ class UsageLedger:
 
     def _write_dead_letter(self, data: dict, error: str) -> None:
         raw = json.dumps(data)
-        ts = datetime.utcnow().isoformat()
+        ts = datetime.now(UTC).isoformat()
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 "INSERT INTO dead_letter_events (raw, error, ts) VALUES (?, ?, ?)",
