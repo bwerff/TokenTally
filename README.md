@@ -266,3 +266,13 @@ svc = PayoutService()
 svc.record_payout("p1", "user42", 1000, "USD")
 status = svc.get_status("p1")
 ```
+
+## Stripe webhook server
+Run `token_tally.stripe_webhook` to listen for Stripe events. It validates the
+`Stripe-Signature` header and writes invoice or payout statuses to `ledger.db`.
+
+```bash
+python -m token_tally.stripe_webhook whsec_test --db-path ledger.db --port 9000
+```
+
+Configure Stripe to send webhooks to `http://localhost:9000/webhook`.
