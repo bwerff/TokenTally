@@ -64,6 +64,10 @@ async function getLimits(env: Env, key: string): Promise<{ concurrency: number; 
 
 function enterConcurrency(key: string, limit: number): boolean {
   const current = concurrency.get(key) || 0;
+  if (limit === 0) {
+    concurrency.set(key, current + 1);
+    return true;
+  }
   if (current >= limit) return false;
   concurrency.set(key, current + 1);
   return true;
@@ -71,10 +75,18 @@ function enterConcurrency(key: string, limit: number): boolean {
 
 function exitConcurrency(key: string): void {
   const current = concurrency.get(key) || 1;
-  concurrency.set(key, current - 1);
+  if (current <= 1) {
+    concurrency.delete(key);
+  } else {
+    concurrency.set(key, current - 1);
+  }
 }
 
 function allowRequest(key: string, limit: number): boolean {
+  if (limit === 0) {
+    return true;
+  }
+
   const now = Date.now();
   const bucket = buckets.get(key) || { tokens: limit, last: now };
   const elapsed = now - bucket.last;
