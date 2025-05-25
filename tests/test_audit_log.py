@@ -36,3 +36,19 @@ def test_hash_chain_verification(tmp_path):
         conn.commit()
 
     assert not log.verify_chain("cust")
+
+
+def test_delete_events_chain_intact(tmp_path):
+    db_path = tmp_path / "audit.db"
+    log = AuditLog(str(db_path))
+    log.add_event("e1", "c1", "foo", 1, datetime(2024, 1, 1))
+    log.add_event("e2", "c2", "bar", 2, datetime(2024, 1, 2))
+    log.add_event("e3", "c1", "baz", 3, datetime(2024, 1, 3))
+    assert log.verify_chain()
+
+    log.delete_events("c1")
+    events = log.list_events()
+    assert len(events) == 1
+    assert events[0]["customer_id"] == "c2"
+    assert log.verify_chain()
+    assert log.verify_chain("c1")

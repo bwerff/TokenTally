@@ -94,6 +94,15 @@ class AuditLog:
         ]
         return [dict(zip(keys, row)) for row in rows]
 
+    def delete_events(self, customer_id: str) -> None:
+        """Remove all audit events for ``customer_id``."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "DELETE FROM audit_events WHERE customer_id = ?",
+                (customer_id,),
+            )
+            conn.commit()
+
     def verify_chain(self, customer_id: Optional[str] = None) -> bool:
         """Return ``True`` if the hash chain is intact."""
         customers: List[str]
