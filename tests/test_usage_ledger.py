@@ -59,3 +59,27 @@ def test_dead_letter_timestamp_timezone(tmp_path):
         ts = cur.fetchone()[0]
 
     assert "+00:00" in ts
+
+
+def test_usage_event_timestamp_timezone(tmp_path):
+    db_path = tmp_path / "ledger.db"
+    ledger = UsageLedger(db_path=str(db_path))
+    event = UsageEvent(
+        event_id="evt2",
+        ts=datetime.now(UTC),
+        customer_id="cust",
+        provider="openai",
+        model="gpt-4",
+        metric_type="tokens",
+        units=5,
+        unit_cost_usd=0.01,
+    )
+    ledger.add_event(event)
+
+    import sqlite3
+
+    with sqlite3.connect(db_path) as conn:
+        cur = conn.execute("SELECT ts FROM usage_events")
+        ts = cur.fetchone()[0]
+
+    assert "+00:00" in ts
