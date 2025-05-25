@@ -19,6 +19,18 @@ key using a KV namespace or an environment variable containing JSON.
 Values found in `KEY_LIMITS_JSON` or `KEY_LIMITS` override the defaults for the
 matching API key. A limit value of `0` means no limit for that field.
 
+Example `KEY_LIMITS_JSON` value:
+
+```json
+{
+  "demo-key": { "concurrency": 10, "rate": 100 },
+  "unlimited": { "concurrency": 0, "rate": 0 }
+}
+```
+
+When using a KV namespace, each entry uses the API key as the KV key and stores
+the same JSON object as its value.
+
 ## Development
 
 ```bash
