@@ -28,5 +28,10 @@
   "markup.provider": "Fournisseur",
   "markup.model": "Modèle",
   "markup.markup": "Marge",
-  "markup.effective": "Prise d'effet"
+  "markup.effective": "Prise d'effet",
+  "navbar.users": "Utilisateurs",
+  "users.title": "Utilisateurs de l'organisation",
+  "users.add": "Ajouter",
+  "users.remove": "Supprimer",
+  "users.denied": "Accès refusé"
 }

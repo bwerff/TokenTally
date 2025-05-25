@@ -28,5 +28,10 @@
   "markup.provider": "Provider",
   "markup.model": "Model",
   "markup.markup": "Markup",
-  "markup.effective": "Effective"
+  "markup.effective": "Effective",
+  "navbar.users": "Users",
+  "users.title": "Organisation Users",
+  "users.add": "Add",
+  "users.remove": "Remove",
+  "users.denied": "Access denied"
 }
