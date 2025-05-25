@@ -10,6 +10,7 @@ from .gpu_metrics import parse_dcgm_gpu_minutes
 from .ledger import Ledger
 from .payout import StripePayoutClient, PayoutService
 from .forecast import arima_forecast, forecast_next_hour
+from .metrics import REQUEST_COUNTER, TOKEN_COUNTER, start_metrics_server
 from .alerts import send_webhook_message
 
 __all__ = [
@@ -24,6 +25,9 @@ __all__ = [
     "parse_dcgm_gpu_minutes",
     "Ledger",
     "StripePayoutClient",
+    "REQUEST_COUNTER",
+    "TOKEN_COUNTER",
+    "start_metrics_server",
     "PayoutService",
     "arima_forecast",
     "forecast_next_hour",

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { trpc } from '../lib/trpc'
 import Navbar from '../components/Navbar'
+import { useTranslations } from 'next-intl'
 
 export default function Usage() {
   const [start, setStart] = useState('')
@@ -20,6 +21,8 @@ export default function Usage() {
       customer: customer || undefined,
     })
   }
+
+  const t = useTranslations()
   return (
     <>
       <Navbar />

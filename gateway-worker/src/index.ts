@@ -1,6 +1,10 @@
 export interface Env {
   CREDIT_LIMIT?: string;
   WEBHOOK_URL?: string;
+  CONCURRENCY_LIMIT?: string;
+  RATE_LIMIT?: string;
+  KEY_LIMITS?: KVNamespace;
+  KEY_LIMITS_JSON?: string;
 }
 
 const PROVIDER_BASE: Record<string, string> = {
@@ -8,8 +12,8 @@ const PROVIDER_BASE: Record<string, string> = {
   anthropic: 'https://api.anthropic.com',
 };
 
-const CONCURRENCY_LIMIT = 5;
-const RATE_LIMIT = 60; // requests per minute
+const DEFAULT_CONCURRENCY_LIMIT = 5;
+const DEFAULT_RATE_LIMIT = 60; // requests per minute
 const WINDOW_MS = 60_000;
 
 const concurrency = new Map<string, number>();
@@ -18,9 +22,49 @@ const buckets = new Map<string, Bucket>();
 const spendTotals = new Map<string, number>();
 const alerted = new Set<string>();
 
-function enterConcurrency(key: string): boolean {
+let envLimitCache: Record<string, { concurrency?: number; rate?: number }> | null = null;
+
+function getEnvLimits(env: Env): Record<string, { concurrency?: number; rate?: number }> {
+  if (envLimitCache === null) {
+    try {
+      envLimitCache = env.KEY_LIMITS_JSON ? JSON.parse(env.KEY_LIMITS_JSON) : {};
+    } catch {
+      envLimitCache = {};
+    }
+  }
+  return envLimitCache;
+}
+
+async function getLimits(env: Env, key: string): Promise<{ concurrency: number; rate: number }> {
+  const defaults = {
+    concurrency: parseInt(env.CONCURRENCY_LIMIT || String(DEFAULT_CONCURRENCY_LIMIT), 10),
+    rate: parseInt(env.RATE_LIMIT || String(DEFAULT_RATE_LIMIT), 10),
+  };
+
+  const envLimits = getEnvLimits(env)[key];
+  if (envLimits) {
+    return {
+      concurrency: envLimits.concurrency ?? defaults.concurrency,
+      rate: envLimits.rate ?? defaults.rate,
+    };
+  }
+
+  if (env.KEY_LIMITS) {
+    const kvLimits = await env.KEY_LIMITS.get(key, 'json') as { concurrency?: number; rate?: number } | null;
+    if (kvLimits) {
+      return {
+        concurrency: kvLimits.concurrency ?? defaults.concurrency,
+        rate: kvLimits.rate ?? defaults.rate,
+      };
+    }
+  }
+
+  return defaults;
+}
+
+function enterConcurrency(key: string, limit: number): boolean {
   const current = concurrency.get(key) || 0;
-  if (current >= CONCURRENCY_LIMIT) return false;
+  if (current >= limit) return false;
   concurrency.set(key, current + 1);
   return true;
 }
@@ -30,11 +74,11 @@ function exitConcurrency(key: string): void {
   concurrency.set(key, current - 1);
 }
 
-function allowRequest(key: string): boolean {
+function allowRequest(key: string, limit: number): boolean {
   const now = Date.now();
-  const bucket = buckets.get(key) || { tokens: RATE_LIMIT, last: now };
+  const bucket = buckets.get(key) || { tokens: limit, last: now };
   const elapsed = now - bucket.last;
-  bucket.tokens = Math.min(RATE_LIMIT, bucket.tokens + elapsed * RATE_LIMIT / WINDOW_MS);
+  bucket.tokens = Math.min(limit, bucket.tokens + (elapsed * limit) / WINDOW_MS);
   bucket.last = now;
   if (bucket.tokens < 1) {
     buckets.set(key, bucket);
@@ -61,10 +105,12 @@ export default {
       return new Response('Missing Authorization header', { status: 401 });
     }
 
-    if (!enterConcurrency(apiKey)) {
+    const limits = await getLimits(env, apiKey);
+
+    if (!enterConcurrency(apiKey, limits.concurrency)) {
       return new Response('Concurrency limit exceeded', { status: 429 });
     }
-    if (!allowRequest(apiKey)) {
+    if (!allowRequest(apiKey, limits.rate)) {
       exitConcurrency(apiKey);
       return new Response('Rate limit exceeded', { status: 429 });
     }

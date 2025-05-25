@@ -7,6 +7,32 @@ import json
 import sqlite3
 
 try:
+    from opentelemetry import trace
+except Exception:  # pragma: no cover - optional
+
+    class _DummySpan:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc: object) -> None:
+            pass
+
+        def set_attribute(self, *args: object, **kwargs: object) -> None:
+            pass
+
+    class _DummyTracer:
+        def start_as_current_span(self, name: str) -> _DummySpan:
+            return _DummySpan()
+
+    class _TraceModule:
+        def get_tracer(self, name: str | None = None) -> _DummyTracer:
+            return _DummyTracer()
+
+    trace = _TraceModule()  # type: ignore
+
+tracer = trace.get_tracer(__name__)
+
+try:
     from kafka import KafkaProducer
 except ImportError:  # pragma: no cover - kafka-python not installed
     KafkaProducer = None  # type: ignore
@@ -80,29 +106,35 @@ class UsageLedger:
 
     def add_event(self, event: UsageEvent) -> None:
         """Insert event and optionally stream to Kafka."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute(
-                """
-                INSERT INTO usage_events (
-                    event_id, ts, customer_id, provider, model,
-                    metric_type, units, unit_cost_usd
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    event.event_id,
-                    event.ts.isoformat(),
-                    event.customer_id,
-                    event.provider,
-                    event.model,
-                    event.metric_type,
-                    event.units,
-                    event.unit_cost_usd,
-                ),
-            )
-            conn.commit()
-        if self.producer:
-            self.producer.send(self.kafka_topic, asdict(event))
-            self.producer.flush()
+        with tracer.start_as_current_span("UsageLedger.add_event") as span:
+            if span:
+                try:
+                    span.set_attribute("event_id", event.event_id)
+                except Exception:  # pragma: no cover - dummy span
+                    pass
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    """
+                    INSERT INTO usage_events (
+                        event_id, ts, customer_id, provider, model,
+                        metric_type, units, unit_cost_usd
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        event.event_id,
+                        event.ts.isoformat(),
+                        event.customer_id,
+                        event.provider,
+                        event.model,
+                        event.metric_type,
+                        event.units,
+                        event.unit_cost_usd,
+                    ),
+                )
+                conn.commit()
+            if self.producer:
+                self.producer.send(self.kafka_topic, asdict(event))
+                self.producer.flush()
 
     def get_hourly_totals(self, hours: int) -> list[float]:
         """Return spend totals for the last ``hours`` hours."""
@@ -123,7 +155,7 @@ class UsageLedger:
 
     def _write_dead_letter(self, data: dict, error: str) -> None:
         raw = json.dumps(data)
-        ts = datetime.utcnow().isoformat()
+        ts = datetime.now(UTC).isoformat()
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 "INSERT INTO dead_letter_events (raw, error, ts) VALUES (?, ?, ?)",
@@ -201,29 +233,35 @@ class ClickHouseUsageLedger:
         )
 
     def add_event(self, event: UsageEvent) -> None:
-        self.client.execute(
-            """
-            INSERT INTO usage_events (
-                event_id, ts, customer_id, provider, model,
-                metric_type, units, unit_cost_usd
-            ) VALUES
-        """,
-            [
-                (
-                    event.event_id,
-                    event.ts,
-                    event.customer_id,
-                    event.provider,
-                    event.model,
-                    event.metric_type,
-                    event.units,
-                    event.unit_cost_usd,
-                )
-            ],
-        )
-        if self.producer:
-            self.producer.send(self.kafka_topic, asdict(event))
-            self.producer.flush()
+        with tracer.start_as_current_span("ClickHouseUsageLedger.add_event") as span:
+            if span:
+                try:
+                    span.set_attribute("event_id", event.event_id)
+                except Exception:  # pragma: no cover - dummy span
+                    pass
+            self.client.execute(
+                """
+                INSERT INTO usage_events (
+                    event_id, ts, customer_id, provider, model,
+                    metric_type, units, unit_cost_usd
+                ) VALUES
+            """,
+                [
+                    (
+                        event.event_id,
+                        event.ts,
+                        event.customer_id,
+                        event.provider,
+                        event.model,
+                        event.metric_type,
+                        event.units,
+                        event.unit_cost_usd,
+                    )
+                ],
+            )
+            if self.producer:
+                self.producer.send(self.kafka_topic, asdict(event))
+                self.producer.flush()
 
     def get_hourly_totals(self, hours: int) -> list[float]:
         end = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
