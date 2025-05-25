@@ -17,7 +17,10 @@
   "register.error": "Échec de l'inscription",
   "offers.title": "Offres disponibles",
   "usage.title": "Explorateur d'utilisation",
+  "usage.allCustomers": "Tous les clients",
+  "usage.apply": "Appliquer",
   "audit.title": "Historique des audits",
+  "audit.tokens": "{count} jetons",
   "upload.title": "Téléverser un reçu",
   "upload.button": "Téléverser",
   "upload.success": "Téléversé !",
@@ -33,5 +36,6 @@
   "users.title": "Utilisateurs de l'organisation",
   "users.add": "Ajouter",
   "users.remove": "Supprimer",
+  "users.loading": "Chargement...",
   "users.denied": "Accès refusé"
 }
