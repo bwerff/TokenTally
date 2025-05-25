@@ -37,9 +37,11 @@ class UsageLedger:
         db_path: str = "usage_ledger.db",
         kafka_servers: Optional[Iterable[str]] = None,
         kafka_topic: str = "usage_events",
+        dead_letter_topic: str = "dead_letter",
     ):
         self.db_path = db_path
         self.kafka_topic = kafka_topic
+        self.dead_letter_topic = dead_letter_topic
         self.producer = None
         if kafka_servers and KafkaProducer:
             self.producer = KafkaProducer(
@@ -61,6 +63,16 @@ class UsageLedger:
                     metric_type TEXT NOT NULL,
                     units REAL NOT NULL,
                     unit_cost_usd REAL NOT NULL
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS dead_letter_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    raw TEXT NOT NULL,
+                    error TEXT NOT NULL,
+                    ts TEXT NOT NULL
                 )
                 """
             )
@@ -108,6 +120,42 @@ class UsageLedger:
                 if 0 <= idx < hours:
                     totals[idx] += units * unit_cost
         return totals
+
+    def _write_dead_letter(self, data: dict, error: str) -> None:
+        raw = json.dumps(data)
+        ts = datetime.utcnow().isoformat()
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "INSERT INTO dead_letter_events (raw, error, ts) VALUES (?, ?, ?)",
+                (raw, error, ts),
+            )
+            conn.commit()
+        if self.producer:
+            self.producer.send(self.dead_letter_topic, {"raw": data, "error": error})
+            self.producer.flush()
+
+    def parse_event(self, data: dict) -> Optional[UsageEvent]:
+        """Convert a dict to ``UsageEvent`` and log malformed input."""
+        try:
+            ts = data["ts"]
+            if isinstance(ts, str):
+                ts = datetime.fromisoformat(ts)
+            if not isinstance(ts, datetime):
+                raise ValueError("invalid ts")
+            event = UsageEvent(
+                event_id=str(data["event_id"]),
+                ts=ts,
+                customer_id=str(data["customer_id"]),
+                provider=str(data["provider"]),
+                model=str(data["model"]),
+                metric_type=str(data["metric_type"]),
+                units=float(data["units"]),
+                unit_cost_usd=float(data["unit_cost_usd"]),
+            )
+            return event
+        except (KeyError, TypeError, ValueError) as exc:  # pragma: no cover - defensive
+            self._write_dead_letter(data, str(exc))
+            return None
 
 
 class ClickHouseUsageLedger:

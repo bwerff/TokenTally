@@ -1,5 +1,6 @@
 import sys
 import pathlib
+
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 from datetime import datetime
 from token_tally import UsageEvent, UsageLedger
@@ -26,3 +27,21 @@ def test_add_event(tmp_path):
         cur = conn.execute("SELECT count(*) FROM usage_events")
         count = cur.fetchone()[0]
     assert count == 1
+
+
+def test_dead_letter_on_malformed(tmp_path):
+    db_path = tmp_path / "ledger.db"
+    ledger = UsageLedger(db_path=str(db_path))
+    bad = {"event_id": "bad1", "ts": "not-a-date"}
+    event = ledger.parse_event(bad)
+    assert event is None
+
+    import sqlite3, json
+
+    with sqlite3.connect(db_path) as conn:
+        cur = conn.execute("SELECT raw, error FROM dead_letter_events")
+        row = cur.fetchone()
+    assert row is not None
+    raw = json.loads(row[0])
+    assert raw["event_id"] == "bad1"
+    assert "invalid" in row[1].lower()
