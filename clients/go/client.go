@@ -4,6 +4,7 @@ import (
     "encoding/json"
     "fmt"
     "net/http"
+    "time"
 )
 
 type usageResponse struct {
@@ -13,17 +14,28 @@ type usageResponse struct {
 }
 
 func GetUsage(baseURL string) ([]map[string]interface{}, error) {
-    resp, err := http.Get(fmt.Sprintf("%s/api/trpc/usage", baseURL))
-    if err != nil {
-        return nil, err
+    delay := 100 * time.Millisecond
+    for i := 0; i < 3; i++ {
+        resp, err := http.Get(fmt.Sprintf("%s/api/trpc/usage", baseURL))
+        if err == nil && resp.StatusCode == http.StatusOK {
+            defer resp.Body.Close()
+            var r usageResponse
+            if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
+                return nil, err
+            }
+            return r.Result.Data, nil
+        }
+        if resp != nil {
+            resp.Body.Close()
+        }
+        if i == 2 {
+            if err != nil {
+                return nil, err
+            }
+            return nil, fmt.Errorf("status %d", resp.StatusCode)
+        }
+        time.Sleep(delay)
+        delay *= 2
     }
-    defer resp.Body.Close()
-    if resp.StatusCode != http.StatusOK {
-        return nil, fmt.Errorf("status %d", resp.StatusCode)
-    }
-    var r usageResponse
-    if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
-        return nil, err
-    }
-    return r.Result.Data, nil
+    return nil, fmt.Errorf("unreachable")
 }
