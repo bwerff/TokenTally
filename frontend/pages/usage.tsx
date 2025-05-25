@@ -27,7 +27,7 @@ export default function Usage() {
     <>
       <Navbar />
       <main className="container mx-auto px-4 py-4">
-        <h2 className="text-2xl font-bold mb-4">Usage Explorer</h2>
+        <h2 className="text-2xl font-bold mb-4">{t('usage.title')}</h2>
         <form onSubmit={handleSubmit} className="space-x-2 mb-4">
           <input
             type="date"
@@ -46,7 +46,7 @@ export default function Usage() {
             onChange={e => setCustomer(e.target.value)}
             className="border p-1 rounded"
           >
-            <option value="">All Customers</option>
+            <option value="">{t('usage.allCustomers')}</option>
             {customers.map(c => (
               <option key={c} value={c}>
                 {c}
@@ -54,7 +54,7 @@ export default function Usage() {
             ))}
           </select>
           <button className="bg-blue-600 text-white px-3 py-1 rounded" type="submit">
-            Apply
+            {t('usage.apply')}
           </button>
         </form>
         <ul className="space-y-2">

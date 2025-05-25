@@ -14,7 +14,7 @@ export default function Audit() {
         <ul className="space-y-2">
           {logs.map((l: any) => (
             <li key={l.event_id} className="p-2 bg-white rounded shadow">
-              {l.customer_id} {l.token_count} tokens
+              {l.customer_id} {t('audit.tokens', { count: l.token_count })}
             </li>
           ))}
         </ul>
