@@ -10,3 +10,9 @@ NextAuth is configured in `pages/api/auth/[...nextauth].ts`. The credentials pro
 - `SAML_ENTRYPOINT`, `SAML_ISSUER` and `SAML_CERT` – enable a generic SAML 2.0 provider.
 
 If the variables are not set the corresponding provider is skipped.
+
+## Organisation management
+
+Admins can manage organisation users at `/org-users`. The page lists users and
+allows adding or removing members using tRPC calls backed by a SQLite database
+(`accounts.db`). Only authenticated admins may access the page.

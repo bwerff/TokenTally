@@ -19,6 +19,7 @@ export default function Navbar() {
           <Link className="text-blue-600" href="/upload-receipt">{t('navbar.upload')}</Link>
           <Link className="text-blue-600" href="/usage">{t('navbar.usage')}</Link>
           <Link className="text-blue-600" href="/audit">{t('navbar.audit')}</Link>
+          <Link className="text-blue-600" href="/org-users">{t('navbar.users')}</Link>
           <select onChange={changeLocale} value={router.locale} className="border ml-4 p-1">
             <option value="en">EN</option>
             <option value="fr">FR</option>
