@@ -5,6 +5,32 @@ from typing import Optional, Dict, Any
 from . import fx
 from . import markup
 
+try:
+    from opentelemetry import trace
+except Exception:  # pragma: no cover - optional
+
+    class _DummySpan:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc: object) -> None:
+            pass
+
+        def set_attribute(self, *args: object, **kwargs: object) -> None:
+            pass
+
+    class _DummyTracer:
+        def start_as_current_span(self, name: str) -> _DummySpan:
+            return _DummySpan()
+
+    class _TraceModule:
+        def get_tracer(self, name: str | None = None) -> _DummyTracer:
+            return _DummyTracer()
+
+    trace = _TraceModule()  # type: ignore
+
+tracer = trace.get_tracer(__name__)
+
 
 class Ledger:
     """Simple SQLite ledger for payouts and usage events."""
@@ -87,23 +113,35 @@ class Ledger:
         status: str,
         processor: str,
     ) -> None:
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO payouts (id, user_id, amount, currency, status, processor)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (payout_id, user_id, amount, currency, status, processor),
-            )
-            conn.commit()
+        with tracer.start_as_current_span("Ledger.add_payout") as span:
+            if span:
+                try:
+                    span.set_attribute("payout_id", payout_id)
+                except Exception:  # pragma: no cover - dummy span
+                    pass
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO payouts (id, user_id, amount, currency, status, processor)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (payout_id, user_id, amount, currency, status, processor),
+                )
+                conn.commit()
 
     def update_status(self, payout_id: str, status: str) -> None:
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute(
-                "UPDATE payouts SET status = ? WHERE id = ?",
-                (status, payout_id),
-            )
-            conn.commit()
+        with tracer.start_as_current_span("Ledger.update_status") as span:
+            if span:
+                try:
+                    span.set_attribute("payout_id", payout_id)
+                except Exception:  # pragma: no cover - dummy span
+                    pass
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    "UPDATE payouts SET status = ? WHERE id = ?",
+                    (status, payout_id),
+                )
+                conn.commit()
 
     def get_payout(self, payout_id: str) -> Optional[Dict[str, Any]]:
         with sqlite3.connect(self.db_path) as conn:
@@ -143,34 +181,40 @@ class Ledger:
         ts: Optional[datetime] = None,
         markup_db_path: Optional[str] = None,
     ) -> None:
-        ts = ts or datetime.now(UTC)
-        markup_rule = None
-        if provider and model:
-            rule = markup.get_effective_markup(
-                provider,
-                model,
-                ts.isoformat(),
-                db_path=markup_db_path or "markup_rules.db",
-            )
-            markup_rule = rule["markup"] if rule else 0.0
-        else:
-            markup_rule = 0.0
-
-        final_cost = unit_cost * (1 + markup_rule)
-        if currency != "USD" and fx_rates:
-            final_cost = fx.convert(final_cost, currency, "USD", fx_rates)
-
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO usage_events (
-                    id, customer_id, feature, units, unit_cost, invoice_cycle
+        with tracer.start_as_current_span("Ledger.add_usage_event") as span:
+            if span:
+                try:
+                    span.set_attribute("event_id", event_id)
+                except Exception:  # pragma: no cover - dummy span
+                    pass
+            ts = ts or datetime.now(UTC)
+            markup_rule = None
+            if provider and model:
+                rule = markup.get_effective_markup(
+                    provider,
+                    model,
+                    ts.isoformat(),
+                    db_path=markup_db_path or "markup_rules.db",
                 )
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (event_id, customer_id, feature, units, final_cost, invoice_cycle),
-            )
-            conn.commit()
+                markup_rule = rule["markup"] if rule else 0.0
+            else:
+                markup_rule = 0.0
+
+            final_cost = unit_cost * (1 + markup_rule)
+            if currency != "USD" and fx_rates:
+                final_cost = fx.convert(final_cost, currency, "USD", fx_rates)
+
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO usage_events (
+                        id, customer_id, feature, units, unit_cost, invoice_cycle
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (event_id, customer_id, feature, units, final_cost, invoice_cycle),
+                )
+                conn.commit()
 
     def get_pending_usage_events(self):
         with sqlite3.connect(self.db_path) as conn:
@@ -190,12 +234,18 @@ class Ledger:
             return [dict(zip(keys, row)) for row in cur.fetchall()]
 
     def mark_usage_synced(self, event_id: str, record_id: str) -> None:
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute(
-                "UPDATE usage_events SET stripe_status = 'synced', stripe_record_id = ? WHERE id = ?",
-                (record_id, event_id),
-            )
-            conn.commit()
+        with tracer.start_as_current_span("Ledger.mark_usage_synced") as span:
+            if span:
+                try:
+                    span.set_attribute("event_id", event_id)
+                except Exception:  # pragma: no cover - dummy span
+                    pass
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    "UPDATE usage_events SET stripe_status = 'synced', stripe_record_id = ? WHERE id = ?",
+                    (record_id, event_id),
+                )
+                conn.commit()
 
     def get_usage_events_by_cycle(self, cycle: str):
         with sqlite3.connect(self.db_path) as conn:
@@ -223,33 +273,51 @@ class Ledger:
     def create_invoice(
         self, invoice_id: str, customer_id: str, cycle: str, amount: float
     ) -> None:
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute(
-                "INSERT OR REPLACE INTO invoices (id, customer_id, cycle, amount) VALUES (?, ?, ?, ?)",
-                (invoice_id, customer_id, cycle, amount),
-            )
-            conn.commit()
+        with tracer.start_as_current_span("Ledger.create_invoice") as span:
+            if span:
+                try:
+                    span.set_attribute("invoice_id", invoice_id)
+                except Exception:  # pragma: no cover - dummy span
+                    pass
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    "INSERT OR REPLACE INTO invoices (id, customer_id, cycle, amount) VALUES (?, ?, ?, ?)",
+                    (invoice_id, customer_id, cycle, amount),
+                )
+                conn.commit()
 
     def create_credit_note(
         self, note_id: str, invoice_id: str, amount: float, description: str
     ) -> None:
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute(
-                "INSERT OR REPLACE INTO credit_notes (id, invoice_id, amount, description) VALUES (?, ?, ?, ?)",
-                (note_id, invoice_id, amount, description),
-            )
-            conn.commit()
+        with tracer.start_as_current_span("Ledger.create_credit_note") as span:
+            if span:
+                try:
+                    span.set_attribute("note_id", note_id)
+                except Exception:  # pragma: no cover - dummy span
+                    pass
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    "INSERT OR REPLACE INTO credit_notes (id, invoice_id, amount, description) VALUES (?, ?, ?, ?)",
+                    (note_id, invoice_id, amount, description),
+                )
+                conn.commit()
 
     # Budget helpers ------------------------------------------------------
 
     def set_budget(self, customer_id: str, monthly_limit: float) -> None:
         """Insert or update a monthly budget for a customer."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute(
-                "INSERT OR REPLACE INTO budgets (customer_id, monthly_limit) VALUES (?, ?)",
-                (customer_id, monthly_limit),
-            )
-            conn.commit()
+        with tracer.start_as_current_span("Ledger.set_budget") as span:
+            if span:
+                try:
+                    span.set_attribute("customer_id", customer_id)
+                except Exception:  # pragma: no cover - dummy span
+                    pass
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    "INSERT OR REPLACE INTO budgets (customer_id, monthly_limit) VALUES (?, ?)",
+                    (customer_id, monthly_limit),
+                )
+                conn.commit()
 
     def get_budget(self, customer_id: str) -> Optional[float]:
         """Return the monthly limit for the given customer, if set."""
