@@ -45,3 +45,17 @@ def test_dead_letter_on_malformed(tmp_path):
     raw = json.loads(row[0])
     assert raw["event_id"] == "bad1"
     assert "invalid" in row[1].lower()
+
+
+def test_dead_letter_timestamp_timezone(tmp_path):
+    db_path = tmp_path / "ledger.db"
+    ledger = UsageLedger(db_path=str(db_path))
+    ledger.parse_event({"event_id": "bad2", "ts": "bad"})
+
+    import sqlite3
+
+    with sqlite3.connect(db_path) as conn:
+        cur = conn.execute("SELECT ts FROM dead_letter_events")
+        ts = cur.fetchone()[0]
+
+    assert "+00:00" in ts
