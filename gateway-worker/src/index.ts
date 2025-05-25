@@ -22,6 +22,29 @@ const buckets = new Map<string, Bucket>();
 const spendTotals = new Map<string, number>();
 const alerted = new Set<string>();
 
+let tracer: any = null;
+
+async function withSpan<T>(name: string, fn: (span: any) => Promise<T>): Promise<T> {
+  if (tracer === null) {
+    try {
+      const api = await import('@opentelemetry/api');
+      tracer = api.trace.getTracer('gateway-worker');
+    } catch {
+      tracer = { startActiveSpan: async (_n: string, f: (s: any) => Promise<T>) => f({ setAttribute() {}, end() {} }) };
+    }
+  }
+  if (typeof tracer.startActiveSpan === 'function') {
+    return tracer.startActiveSpan(name, async (span: any) => {
+      try {
+        return await fn(span);
+      } finally {
+        span.end();
+      }
+    });
+  }
+  return fn({ setAttribute() {}, end() {} });
+}
+
 let envLimitCache: Record<string, { concurrency?: number; rate?: number }> | null = null;
 
 function getEnvLimits(env: Env): Record<string, { concurrency?: number; rate?: number }> {
@@ -112,55 +135,58 @@ async function sendAlert(env: Env, msg: string): Promise<void> {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const apiKey = request.headers.get('Authorization');
-    if (!apiKey) {
-      return new Response('Missing Authorization header', { status: 401 });
-    }
-
-    const limits = await getLimits(env, apiKey);
-
-    if (!enterConcurrency(apiKey, limits.concurrency)) {
-      return new Response('Concurrency limit exceeded', { status: 429 });
-    }
-    if (!allowRequest(apiKey, limits.rate)) {
-      exitConcurrency(apiKey);
-      return new Response('Rate limit exceeded', { status: 429 });
-    }
-
-    const provider = request.headers.get('X-LLM-Provider') || 'openai';
-    const base = PROVIDER_BASE[provider.toLowerCase()];
-    if (!base) {
-      exitConcurrency(apiKey);
-      return new Response('Unknown provider', { status: 400 });
-    }
-
-    const creditLimit = parseFloat(env.CREDIT_LIMIT || '0');
-    const spent = spendTotals.get(apiKey) || 0;
-    if (creditLimit > 0 && spent >= creditLimit) {
-      await sendAlert(env, `API key ${apiKey} exceeded credit limit`);
-      exitConcurrency(apiKey);
-      return new Response('Credit limit exceeded', { status: 429 });
-    }
-
-    const url = new URL(request.url);
-    const targetUrl = base + url.pathname + url.search;
-    const proxyReq = new Request(targetUrl, request);
-    proxyReq.headers.delete('X-LLM-Provider');
-
-    try {
-      const resp = await fetch(proxyReq);
-      const cost = parseFloat(resp.headers.get('X-Usage-Cost') || '0');
-      if (creditLimit > 0 && cost > 0) {
-        const newTotal = spent + cost;
-        spendTotals.set(apiKey, newTotal);
-        if (newTotal >= creditLimit && !alerted.has(apiKey)) {
-          alerted.add(apiKey);
-          await sendAlert(env, `API key ${apiKey} hit credit limit`);
-        }
+    return withSpan('gateway.fetch', async span => {
+      const apiKey = request.headers.get('Authorization');
+      if (!apiKey) {
+        return new Response('Missing Authorization header', { status: 401 });
       }
-      return resp;
-    } finally {
-      exitConcurrency(apiKey);
-    }
+
+      const limits = await getLimits(env, apiKey);
+
+      if (!enterConcurrency(apiKey, limits.concurrency)) {
+        return new Response('Concurrency limit exceeded', { status: 429 });
+      }
+      if (!allowRequest(apiKey, limits.rate)) {
+        exitConcurrency(apiKey);
+        return new Response('Rate limit exceeded', { status: 429 });
+      }
+
+      const provider = request.headers.get('X-LLM-Provider') || 'openai';
+      const base = PROVIDER_BASE[provider.toLowerCase()];
+      if (!base) {
+        exitConcurrency(apiKey);
+        return new Response('Unknown provider', { status: 400 });
+      }
+      span.setAttribute('provider', provider);
+
+      const creditLimit = parseFloat(env.CREDIT_LIMIT || '0');
+      const spent = spendTotals.get(apiKey) || 0;
+      if (creditLimit > 0 && spent >= creditLimit) {
+        await sendAlert(env, `API key ${apiKey} exceeded credit limit`);
+        exitConcurrency(apiKey);
+        return new Response('Credit limit exceeded', { status: 429 });
+      }
+
+      const url = new URL(request.url);
+      const targetUrl = base + url.pathname + url.search;
+      const proxyReq = new Request(targetUrl, request);
+      proxyReq.headers.delete('X-LLM-Provider');
+
+      try {
+        const resp = await fetch(proxyReq);
+        const cost = parseFloat(resp.headers.get('X-Usage-Cost') || '0');
+        if (creditLimit > 0 && cost > 0) {
+          const newTotal = spent + cost;
+          spendTotals.set(apiKey, newTotal);
+          if (newTotal >= creditLimit && !alerted.has(apiKey)) {
+            alerted.add(apiKey);
+            await sendAlert(env, `API key ${apiKey} hit credit limit`);
+          }
+        }
+        return resp;
+      } finally {
+        exitConcurrency(apiKey);
+      }
+    });
   },
 };
