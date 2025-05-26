@@ -276,3 +276,13 @@ python -m token_tally.stripe_webhook whsec_test --db-path ledger.db --port 9000
 ```
 
 Configure Stripe to send webhooks to `http://localhost:9000/webhook`.
+
+## Upgrading
+If you are migrating from a previous version of TokenTally, the ledger schema
+now includes a `business_unit` column on both the `usage_events` and `invoices`
+tables. Existing databases can be updated with:
+
+```sql
+ALTER TABLE usage_events ADD COLUMN business_unit TEXT NOT NULL DEFAULT '';
+ALTER TABLE invoices ADD COLUMN business_unit TEXT NOT NULL DEFAULT '';
+```
