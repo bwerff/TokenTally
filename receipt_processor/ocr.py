@@ -1,6 +1,7 @@
 import subprocess
 from pathlib import Path
 
+
 class OCREngine:
     """Simple wrapper around the `tesseract` CLI."""
 
