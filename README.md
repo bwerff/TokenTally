@@ -178,6 +178,8 @@ Stripe Invoice → Customer
 | **Slack / Teams**              | Outbound  | Cost alerts                                                         |
 | **Snowflake / BigQuery**       | Outbound  | Live usage replica for advanced BI                                  |
 
+The `token_tally.export.bigquery_export` CLI pushes usage events to BigQuery.
+
 ---
 
 ### 11  |  Phased Delivery Plan
