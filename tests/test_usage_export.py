@@ -7,6 +7,8 @@ BASE_DIR = pathlib.Path(__file__).resolve().parents[1]
 sys.path.append(str(BASE_DIR / "src"))
 
 from token_tally.ledger import Ledger  # noqa: E402
+import token_tally.export.bigquery_export as bigquery_export  # noqa: E402
+import types
 
 
 def _dummy_snowflake(monkeypatch, rows):
@@ -84,3 +86,48 @@ def test_snowflake_export_cli(tmp_path, monkeypatch):
     assert len(rows) == 2
     assert rows[0][0] == "cust1"
     assert rows[1][0] == "cust2"
+
+    def test_bigquery_export(monkeypatch, tmp_path):
+    db_path = tmp_path / "ledger.db"
+    ledger = Ledger(str(db_path))
+    ledger.add_usage_event("e1", "cust", "feat", 3, 0.5, "2024-05")
+
+    class DummyDataset:
+        def __init__(self, client, name):
+            self.client = client
+            self.name = name
+
+        def table(self, name):
+            self.client.table_called = (self.name, name)
+            return f"{self.name}.{name}"
+
+    class DummyClient:
+        def __init__(self):
+            self.inserted = []
+
+        def dataset(self, name):
+            return DummyDataset(self, name)
+
+        def insert_rows_json(self, table_ref, rows):
+            self.table_ref = table_ref
+            self.inserted.extend(rows)
+            return []
+
+    dummy = DummyClient()
+    monkeypatch.setattr(
+        bigquery_export,
+        "bigquery",
+        types.SimpleNamespace(Client=lambda project: dummy),
+    )
+
+    bigquery_export.export_usage(
+        "2020-01-01",
+        "2030-01-01",
+        project="proj",
+        dataset="ds",
+        table="tbl",
+        ledger=ledger,
+    )
+
+    assert dummy.table_called == ("ds", "tbl")
+    assert dummy.inserted

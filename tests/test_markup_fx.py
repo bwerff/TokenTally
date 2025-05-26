@@ -8,6 +8,7 @@ from datetime import datetime
 import sqlite3
 
 from token_tally.markup import MarkupRuleStore, get_effective_markup  # noqa: E402
+from token_tally.pricing_dsl import parse_pricing_dsl  # noqa: E402
 from token_tally.fx import parse_ecb_rates, convert  # noqa: E402
 from token_tally.ledger import Ledger  # noqa: E402
 
@@ -23,6 +24,20 @@ def test_markup_rule_crud(tmp_path):
     assert len(store.list_rules()) == 1
     store.delete_rule("1")
     assert store.get_rule("1") is None
+
+
+def test_parse_pricing_dsl_and_load(tmp_path):
+    dsl = """
+    # provider model markup date
+    openai gpt-4 20% 2024-01-01
+    anthropic claude-3 0.1 2024-06-01
+    """
+    rules = parse_pricing_dsl(dsl)
+    assert len(rules) == 2
+    store = MarkupRuleStore(str(tmp_path / "rules.db"))
+    store.load_rules(rules)
+    rid = rules[0]["id"]
+    assert store.get_rule(rid)["markup"] == 0.2
 
 
 def test_parse_rates_and_convert():
