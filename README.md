@@ -239,6 +239,7 @@ Stripe Invoice → Customer
 ### Data residency options
 
 TokenTally runs in US-East by default. Enterprise customers may pin all data processing to the EU region or deploy the gateway inside their own Kubernetes clusters using the Helm chart under `helm/token-tally`.
+Set the environment variable `EU_CLICKHOUSE_HOST` to the hostname of the EU ClickHouse cluster when using the `region="eu"` option in the backend.
 
 ## Frontend
 A Next.js + tRPC admin portal lives in `frontend/`. Run `npm install` in that
