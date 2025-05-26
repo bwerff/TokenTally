@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import List
+from typing import List, Optional
 
 from .usage_ledger import UsageLedger
 
@@ -32,7 +32,14 @@ def arima_forecast(series: List[float]) -> float:
     return series[-1] + forecast_diff
 
 
-def forecast_next_hour(ledger: UsageLedger, hours: int = 24) -> float:
-    """Return the forecasted spend for the next hour."""
-    totals = ledger.get_hourly_totals(hours)
+def forecast_next_hour(
+    ledger: UsageLedger, hours: int = 24, region: Optional[str] = None
+) -> float:
+    """Return the forecasted spend for the next hour.
+
+    If ``region`` is provided and the underlying ledger supports it, only events
+    for that region are considered. This keeps backwards compatibility with
+    ledgers that lack a ``region`` column by simply ignoring the parameter.
+    """
+    totals = ledger.get_hourly_totals(hours, region=region)
     return arima_forecast(totals)

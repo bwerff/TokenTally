@@ -9,6 +9,23 @@ class MarkupRuleStore:
         self.db_path = db_path
         self._ensure_table()
 
+    def load_rules(self, rules: List[Dict[str, Any]]) -> None:
+        """Bulk insert rules represented as dictionaries."""
+        for rule in rules:
+            self.create_rule(
+                rule["id"],
+                rule["provider"],
+                rule["model"],
+                float(rule["markup"]),
+                rule["effective_date"],
+            )
+
+    def load_from_dsl(self, text: str) -> None:
+        """Parse DSL text and load resulting rules."""
+        from .pricing_dsl import parse_pricing_dsl
+
+        self.load_rules(parse_pricing_dsl(text))
+
     def _ensure_table(self) -> None:
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(

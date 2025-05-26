@@ -3,15 +3,21 @@ export interface Env {
   WEBHOOK_URL?: string;
   CONCURRENCY_LIMIT?: string;
   RATE_LIMIT?: string;
+  OLLAMA_BASE?: string;
   KEY_LIMITS?: KVNamespace;
   KEY_LIMITS_JSON?: string;
 }
 
+import { recordLatency, metricsText } from './metrics';
+
 const PROVIDER_BASE: Record<string, string> = {
   openai: 'https://api.openai.com',
   anthropic: 'https://api.anthropic.com',
+  cohere: 'https://api.cohere.ai',
+  ollama: 'http://127.0.0.1:11434',
 };
-
+import providerConfig from '../providers.json';
+const PROVIDER_BASE: Record<string, string> = providerConfig;
 const DEFAULT_CONCURRENCY_LIMIT = 5;
 const DEFAULT_RATE_LIMIT = 60; // requests per minute
 const WINDOW_MS = 60_000;
@@ -136,6 +142,12 @@ async function sendAlert(env: Env, msg: string): Promise<void> {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     return withSpan('gateway.fetch', async span => {
+      const url = new URL(request.url);
+      if (url.pathname === '/metrics') {
+        return new Response(metricsText(), {
+          headers: { 'Content-Type': 'text/plain' },
+        });
+      }
       const apiKey = request.headers.get('Authorization');
       if (!apiKey) {
         return new Response('Missing Authorization header', { status: 401 });
@@ -152,7 +164,11 @@ export default {
       }
 
       const provider = request.headers.get('X-LLM-Provider') || 'openai';
-      const base = PROVIDER_BASE[provider.toLowerCase()];
+      const providerKey = provider.toLowerCase();
+      let base = PROVIDER_BASE[providerKey];
+      if (providerKey === 'ollama' && env.OLLAMA_BASE) {
+        base = env.OLLAMA_BASE;
+      }
       if (!base) {
         exitConcurrency(apiKey);
         return new Response('Unknown provider', { status: 400 });
@@ -172,6 +188,7 @@ export default {
       const proxyReq = new Request(targetUrl, request);
       proxyReq.headers.delete('X-LLM-Provider');
 
+      const startTime = Date.now();
       try {
         const resp = await fetch(proxyReq);
         const cost = parseFloat(resp.headers.get('X-Usage-Cost') || '0');
@@ -185,6 +202,7 @@ export default {
         }
         return resp;
       } finally {
+        recordLatency(provider, Date.now() - startTime);
         exitConcurrency(apiKey);
       }
     });
