@@ -236,6 +236,8 @@ Stripe Invoice → Customer
 | Continuous monitoring in place| Q2 2026   |
 | Type II report                | Q4 2026   |
 
+See [docs/soc2_risk_assessment.md](docs/soc2_risk_assessment.md) for the current list of identified risks and planned controls.
+
 ### Data residency options
 
 TokenTally runs in US-East by default. Enterprise customers may pin all data processing to the EU region or deploy the gateway inside their own Kubernetes clusters using the Helm chart under `helm/token-tally`.
