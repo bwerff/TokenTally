@@ -6,6 +6,8 @@ import urllib.request
 import urllib.parse
 from typing import Optional, List, Dict
 
+from .accounting import netsuite
+
 from .fx import convert
 from .fx_rates import get_rates
 from .accounting.quickbooks import send_invoice_to_quickbooks
@@ -102,7 +104,19 @@ class BillingService:
                     qb_token,
                 )
 
-            invoices.append(
+            invoice_data = {
+                "invoice_id": invoice_id,
+                "customer_id": cust,
+                "cycle": cycle,
+                "total": amt,
+                "credit": credit_amount,
+            }
+            try:
+                netsuite.push_invoice(invoice_data)
+            except Exception:
+                pass
+
+              invoices.append(
                 {"invoice_id": invoice_id, "total": amt, "credit": credit_amount}
             )
         return invoices
