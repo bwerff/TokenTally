@@ -13,7 +13,8 @@ const PROVIDER_BASE: Record<string, string> = {
   anthropic: 'https://api.anthropic.com',
   ollama: 'http://127.0.0.1:11434',
 };
-
+import providerConfig from '../providers.json';
+const PROVIDER_BASE: Record<string, string> = providerConfig;
 const DEFAULT_CONCURRENCY_LIMIT = 5;
 const DEFAULT_RATE_LIMIT = 60; // requests per minute
 const WINDOW_MS = 60_000;

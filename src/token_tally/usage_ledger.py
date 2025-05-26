@@ -3,6 +3,7 @@
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta, UTC
 from typing import Optional, Iterable, Any
+import os
 import json
 import sqlite3
 
@@ -197,12 +198,15 @@ class ClickHouseUsageLedger:
         self,
         host: str = "localhost",
         *,
+        region: Optional[str] = None,
         kafka_servers: Optional[Iterable[str]] = None,
         kafka_topic: str = "usage_events",
         **client_kwargs: Any,
     ) -> None:
         if Client is None:
             raise ImportError("clickhouse-driver not installed")
+        if region == "eu":
+            host = os.getenv("EU_CLICKHOUSE_HOST", host)
         self.client = Client(host=host, **client_kwargs)
         self.kafka_topic = kafka_topic
         self.producer = None
