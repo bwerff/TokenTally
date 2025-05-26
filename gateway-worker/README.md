@@ -40,3 +40,18 @@ npm run start
 
 The worker expects an `Authorization` header containing the caller's API key.
 Requests exceeding the configured limits receive `HTTP 429` responses.
+
+## Multi-region
+
+Deploy the worker to the default US region with:
+
+```bash
+npm run build
+```
+
+For other regions, specify the environment flag. Example for Europe and APAC:
+
+```bash
+npx wrangler publish --env europe
+npx wrangler publish --env apac
+```
