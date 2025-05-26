@@ -2,6 +2,7 @@ import urllib.request
 from xml.etree import ElementTree
 
 ECB_URL = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"
+INTRADAY_URL = "https://example.com/fx/intraday.xml"
 
 
 def parse_ecb_rates(xml_data: bytes) -> dict:
@@ -25,6 +26,13 @@ def parse_ecb_rates(xml_data: bytes) -> dict:
 def get_ecb_rates() -> dict:
     """Fetch the latest FX rates from ECB."""
     with urllib.request.urlopen(ECB_URL) as resp:
+        data = resp.read()
+    return parse_ecb_rates(data)
+
+
+def get_intraday_rates() -> dict:
+    """Fetch intraday FX rates from the alternate feed."""
+    with urllib.request.urlopen(INTRADAY_URL) as resp:
         data = resp.read()
     return parse_ecb_rates(data)
 

@@ -1,12 +1,16 @@
 import base64
 import json
+import os
 import time
 import urllib.request
 import urllib.parse
 from typing import Optional, List, Dict
 
+from .accounting import netsuite
+
 from .fx import convert
 from .fx_rates import get_rates
+from .accounting.quickbooks import send_invoice_to_quickbooks
 
 from .ledger import Ledger
 
@@ -85,7 +89,34 @@ class BillingService:
                 self.ledger.create_credit_note(
                     note_id, invoice_id, credit_amount, "Usage credit"
                 )
-            invoices.append(
+
+            qb_token = os.getenv("QUICKBOOKS_TOKEN")
+            if qb_token:
+                send_invoice_to_quickbooks(
+                    {
+                        "invoice_id": invoice_id,
+                        "customer_id": cust,
+                        "amount": amt,
+                        "cycle": cycle,
+                        "credit": credit_amount,
+                        "currency": currency,
+                    },
+                    qb_token,
+                )
+
+            invoice_data = {
+                "invoice_id": invoice_id,
+                "customer_id": cust,
+                "cycle": cycle,
+                "total": amt,
+                "credit": credit_amount,
+            }
+            try:
+                netsuite.push_invoice(invoice_data)
+            except Exception:
+                pass
+
+              invoices.append(
                 {"invoice_id": invoice_id, "total": amt, "credit": credit_amount}
             )
         return invoices

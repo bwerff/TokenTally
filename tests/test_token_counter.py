@@ -23,14 +23,38 @@ def _expected_anthropic(text: str) -> int:
     return len(tc._regex_split(text))
 
 
+def _expected_cohere(text: str) -> int:
+    return len(tc._regex_split(text))
+
+
+def _expected_ollama(text: str) -> int:
+    if importlib.util.find_spec("ollama"):
+        import ollama  # type: ignore
+
+        tokenize = getattr(ollama, "tokenize", None)
+        if callable(tokenize):
+            try:
+                return len(tokenize(text))
+            except Exception:
+                pass
+    return len(tc._regex_split(text))
+
+
 def test_count_tokens():
     assert tt.count_openai_tokens("hello world!") == _expected_openai("hello world!")
     assert tt.count_anthropic_tokens("chatGPT") == _expected_anthropic("chatGPT")
+    assert tt.count_cohere_tokens("hello") == _expected_cohere("hello")
+    assert tt.count_ollama_tokens("hi there") == _expected_ollama("hi there")
     assert tt.count_local_tokens("one two three") == 3
     assert tt.count_tokens("openai", "foo bar") == _expected_openai("foo bar")
     assert tt.count_tokens("anthropic", "foo bar baz") == _expected_anthropic(
         "foo bar baz"
     )
+    assert tt.count_tokens("cohere", "foo bar baz qux") == _expected_cohere(
+        "foo bar baz qux"
+    )
+
+    assert tt.count_tokens("ollama", "zap zap") == _expected_ollama("zap zap")
     assert tt.count_tokens("local", "a b c d") == 4
 
 
