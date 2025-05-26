@@ -93,6 +93,18 @@ def count_anthropic_tokens(text: str) -> int:
     return count
 
 
+def count_cohere_tokens(text: str) -> int:
+    """Token count for Cohere models using a regex-based approximation."""
+    with tracer.start_as_current_span("count_cohere_tokens") as span:
+        count = len(_regex_split(text))
+        try:
+            span.set_attribute("tokens", count)
+        except Exception:  # pragma: no cover - span may be dummy
+            pass
+    TOKEN_COUNTER.inc(count)
+    return count
+
+
 def count_local_tokens(text: str) -> int:
     """Token count for local models using a simple whitespace split."""
     with tracer.start_as_current_span("count_local_tokens") as span:
@@ -108,6 +120,7 @@ def count_local_tokens(text: str) -> int:
 _PROVIDER_MAP = {
     "openai": count_openai_tokens,
     "anthropic": count_anthropic_tokens,
+    "cohere": count_cohere_tokens,
 }
 
 
@@ -123,6 +136,7 @@ def count_tokens(provider: str, text: str) -> int:
 __all__ = [
     "count_openai_tokens",
     "count_anthropic_tokens",
+    "count_cohere_tokens",
     "count_local_tokens",
     "count_tokens",
 ]

@@ -10,6 +10,7 @@ export interface Env {
 const PROVIDER_BASE: Record<string, string> = {
   openai: 'https://api.openai.com',
   anthropic: 'https://api.anthropic.com',
+  cohere: 'https://api.cohere.ai',
 };
 
 const DEFAULT_CONCURRENCY_LIMIT = 5;
