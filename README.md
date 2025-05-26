@@ -276,3 +276,23 @@ python -m token_tally.stripe_webhook whsec_test --db-path ledger.db --port 9000
 ```
 
 Configure Stripe to send webhooks to `http://localhost:9000/webhook`.
+
+## Pricing DSL
+TokenTally includes a small DSL for pricing rules. Each file contains one or more blocks of the form:
+
+```
+rule "<id>" {
+    provider = "<llm provider>"
+    model    = "<model name>"
+    markup   = <decimal markup>
+    effective_date = "YYYY-MM-DD"
+}
+```
+
+Compile a rules file into the SQLite store used by the gateway:
+
+```bash
+python -m token_tally.pricing_dsl path/to/rules.tally
+```
+
+See [docs/pricing_dsl.md](docs/pricing_dsl.md) for the full DSL reference.
