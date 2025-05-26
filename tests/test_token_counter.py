@@ -24,6 +24,9 @@ def _expected_anthropic(text: str) -> int:
 
 
 def _expected_cohere(text: str) -> int:
+    return len(tc._regex_split(text))
+
+
 def _expected_ollama(text: str) -> int:
     if importlib.util.find_spec("ollama"):
         import ollama  # type: ignore
