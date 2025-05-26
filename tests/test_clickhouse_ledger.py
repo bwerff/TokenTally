@@ -47,3 +47,20 @@ def test_clickhouse_ledger_add_and_totals(monkeypatch):
 
     totals = ledger.get_hourly_totals(2)
     assert totals[1] == 1.0
+
+
+def test_region_selects_eu_host(monkeypatch):
+    class DummyClientHost(DummyClient):
+        def __init__(self, host):
+            super().__init__()
+            self.host = host
+
+    monkeypatch.setenv("EU_CLICKHOUSE_HOST", "eu.example.com")
+    monkeypatch.setattr(
+        usage_ledger,
+        "Client",
+        lambda *, host="localhost", **k: DummyClientHost(host),
+    )
+    ledger = ClickHouseUsageLedger(region="eu")
+    assert isinstance(ledger.client, DummyClientHost)
+    assert ledger.client.host == "eu.example.com"
