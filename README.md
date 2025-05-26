@@ -240,11 +240,11 @@ The `token_tally.export.bigquery_export` CLI pushes usage events to BigQuery.
 | Continuous monitoring in place| Q2 2026   |
 | Type II report                | Q4 2026   |
 
-See [docs/soc2_risk_assessment.md](docs/soc2_risk_assessment.md) for the current list of identified risks and planned controls.
-
 ### Data residency options
 
 TokenTally runs in US-East by default. Enterprise customers may pin all data processing to the EU region or deploy the gateway inside their own Kubernetes clusters using the Helm chart under `helm/token-tally`.
+See `scripts/setup_clickhouse_multi_region.sh` for an example ClickHouse
+replication setup spanning US and EU clusters.
 
 ## Frontend
 A Next.js + tRPC admin portal lives in `frontend/`. Run `npm install` in that
@@ -282,6 +282,7 @@ python -m token_tally.stripe_webhook whsec_test --db-path ledger.db --port 9000
 ```
 
 Configure Stripe to send webhooks to `http://localhost:9000/webhook`.
+
 
 ## Pricing DSL
 TokenTally includes a small DSL for pricing rules. Each file contains one or more blocks of the form:
