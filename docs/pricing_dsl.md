@@ -1,34 +1,34 @@
 # Pricing DSL
 
-TokenTally supports a small domain specific language (DSL) for pricing rules. Each
-rule describes a markup to apply to usage events based on provider and model.
-Rules are compiled into the SQLite `markup_rules.db` used at runtime.
+TokenTally can compile simple pricing DSL files into JSON for easier consumption.
 
-## Rule syntax
+## Writing rules
+
+A DSL file consists of `key=value` pairs. Lines beginning with `#` are ignored.
+Values that look like JSON (numbers, lists, objects) are parsed accordingly.
+
+Example `rules.tally`:
 
 ```
-rule "<id>" {
-    provider = "<llm provider>"
-    model    = "<model name>"
-    markup   = <decimal markup>
-    effective_date = "YYYY-MM-DD"
-}
+provider=openai
+model=gpt-4
+tokens_per_dollar=1000
 ```
 
-- `markup` is a decimal fraction. `0.2` adds a 20% markup to the provider's base
-  price.
-- `effective_date` controls when the rule becomes active.
+## Compile to JSON
 
-Multiple rules can be defined in a single file. A later `effective_date` takes
-precedence when more than one rule matches.
-
-## Compiling rules
-
-Use the helper command to compile the DSL into `markup_rules.db`:
+Use the `pricing_cli.py` tool:
 
 ```bash
-python -m token_tally.pricing_dsl path/to/rules.tally
+python -m token_tally.pricing_cli compile rules.tally -o rules.json
 ```
 
-This parses the file, validates each rule and writes them into the SQLite store.
-At runtime the gateway looks up the active rule for each event.
+This will produce a JSON file:
+
+```json
+{
+  "provider": "openai",
+  "model": "gpt-4",
+  "tokens_per_dollar": 1000
+}
+```
