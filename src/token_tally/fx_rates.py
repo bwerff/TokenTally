@@ -2,7 +2,7 @@ import sqlite3
 from datetime import date
 from typing import Dict, Optional
 
-from .fx import get_ecb_rates
+from .fx import get_ecb_rates, get_intraday_rates
 
 DB_PATH = "fx_rates.db"
 
@@ -36,9 +36,12 @@ def store_rates(
     return fetch_date
 
 
-def fetch_and_store(db_path: str = DB_PATH) -> str:
-    """Fetch latest ECB rates and store them."""
-    rates = get_ecb_rates()
+def fetch_and_store(db_path: str = DB_PATH, *, intraday: bool = False) -> str:
+    """Fetch latest FX rates and store them.
+
+    If ``intraday`` is True, use the intraday feed instead of the daily ECB feed.
+    """
+    rates = get_intraday_rates() if intraday else get_ecb_rates()
     return store_rates(rates, db_path=db_path)
 
 
@@ -63,10 +66,11 @@ def get_rates(
 def main(argv: Optional[list[str]] = None) -> None:
     argv = argv or []
     if argv and argv[0] == "fetch":
-        fetch_date = fetch_and_store()
+        intraday = "--intraday" in argv[1:]
+        fetch_date = fetch_and_store(intraday=intraday)
         print(f"Stored FX rates for {fetch_date}")
     else:
-        print("Usage: python -m token_tally.fx_rates fetch")
+        print("Usage: python -m token_tally.fx_rates fetch [--intraday]")
 
 
 if __name__ == "__main__":
