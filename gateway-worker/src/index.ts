@@ -3,13 +3,18 @@ export interface Env {
   WEBHOOK_URL?: string;
   CONCURRENCY_LIMIT?: string;
   RATE_LIMIT?: string;
+  OLLAMA_BASE?: string;
   KEY_LIMITS?: KVNamespace;
   KEY_LIMITS_JSON?: string;
 }
 
+const PROVIDER_BASE: Record<string, string> = {
+  openai: 'https://api.openai.com',
+  anthropic: 'https://api.anthropic.com',
+  ollama: 'http://127.0.0.1:11434',
+};
 import providerConfig from '../providers.json';
 const PROVIDER_BASE: Record<string, string> = providerConfig;
-
 const DEFAULT_CONCURRENCY_LIMIT = 5;
 const DEFAULT_RATE_LIMIT = 60; // requests per minute
 const WINDOW_MS = 60_000;
@@ -150,7 +155,11 @@ export default {
       }
 
       const provider = request.headers.get('X-LLM-Provider') || 'openai';
-      const base = PROVIDER_BASE[provider.toLowerCase()];
+      const providerKey = provider.toLowerCase();
+      let base = PROVIDER_BASE[providerKey];
+      if (providerKey === 'ollama' && env.OLLAMA_BASE) {
+        base = env.OLLAMA_BASE;
+      }
       if (!base) {
         exitConcurrency(apiKey);
         return new Response('Unknown provider', { status: 400 });
