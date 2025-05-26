@@ -220,7 +220,7 @@ Stripe Invoice → Customer
 | Fork Portkey, bolt ClickHouse & Stripe hook (PoC)  | Eng Lead | 05 Jun 2025 |
 | Draft security architecture doc for SOC readiness  | CISO     | 28 Jun 2025 |
 | Prepare one-pager + deck for \$1.5 M pre-seed      | GM       | 21 Jun 2025 |
-| Line up design-partner LOIs (3 SaaS, 2 Enterprise) | Sales    | 30 Jun 2025 |
+| Line up design-partner LOIs (3 SaaS, 2 Enterprise) ([template](docs/design_partner_loi_template.md)) | Sales    | 30 Jun 2025 |
 
 ---
 **Bottom line:** This gateway solves a *real*, boring accounting problem nobody wants to touch. Nail deterministic metering, stay invisible in the hot path, and invoice cleanly—everything else is a feature-creep distraction.
