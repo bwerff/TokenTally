@@ -137,16 +137,26 @@ class UsageLedger:
                 self.producer.send(self.kafka_topic, asdict(event))
                 self.producer.flush()
 
-    def get_hourly_totals(self, hours: int) -> list[float]:
-        """Return spend totals for the last ``hours`` hours."""
+    def get_hourly_totals(
+        self, hours: int, region: Optional[str] = None
+    ) -> list[float]:
+        """Return spend totals for the last ``hours`` hours.
+
+        When ``region`` is provided and the ``usage_events`` table includes a
+        ``region`` column, totals are filtered accordingly.
+        """
         end = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
         start = end - timedelta(hours=hours)
         totals = [0.0 for _ in range(hours)]
         with sqlite3.connect(self.db_path) as conn:
-            cur = conn.execute(
-                "SELECT ts, units, unit_cost_usd FROM usage_events WHERE ts >= ? AND ts < ?",
-                (start.isoformat(), end.isoformat()),
-            )
+            query = "SELECT ts, units, unit_cost_usd FROM usage_events WHERE ts >= ? AND ts < ?"
+            params: list[str] = [start.isoformat(), end.isoformat()]
+            if region is not None:
+                info = conn.execute("PRAGMA table_info(usage_events)").fetchall()
+                if any(col[1] == "region" for col in info):
+                    query += " AND region = ?"
+                    params.append(region)
+            cur = conn.execute(query, params)
             for ts_str, units, unit_cost in cur.fetchall():
                 ts = datetime.fromisoformat(ts_str)
                 idx = int((ts - start).total_seconds() // 3600)
@@ -267,17 +277,23 @@ class ClickHouseUsageLedger:
                 self.producer.send(self.kafka_topic, asdict(event))
                 self.producer.flush()
 
-    def get_hourly_totals(self, hours: int) -> list[float]:
+    def get_hourly_totals(
+        self, hours: int, region: Optional[str] = None
+    ) -> list[float]:
         end = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
         start = end - timedelta(hours=hours)
         totals = [0.0 for _ in range(hours)]
-        rows = self.client.execute(
-            """
-            SELECT ts, units, unit_cost_usd FROM usage_events
-            WHERE ts >= %(start)s AND ts < %(end)s
-            """,
-            {"start": start, "end": end},
-        )
+        query = "SELECT ts, units, unit_cost_usd FROM usage_events WHERE ts >= %(start)s AND ts < %(end)s"
+        params = {"start": start, "end": end}
+        if region is not None:
+            try:
+                desc = self.client.execute("DESCRIBE TABLE usage_events")
+            except Exception:
+                desc = []
+            if any(col[0] == "region" for col in desc):
+                query += " AND region = %(region)s"
+                params["region"] = region
+        rows = self.client.execute(query, params)
         for ts, units, unit_cost in rows:
             idx = int((ts - start).total_seconds() // 3600)
             if 0 <= idx < hours:
