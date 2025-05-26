@@ -11,6 +11,7 @@ export interface Env {
 const PROVIDER_BASE: Record<string, string> = {
   openai: 'https://api.openai.com',
   anthropic: 'https://api.anthropic.com',
+  cohere: 'https://api.cohere.ai',
   ollama: 'http://127.0.0.1:11434',
 };
 import providerConfig from '../providers.json';
