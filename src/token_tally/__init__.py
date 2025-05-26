@@ -4,6 +4,7 @@ from .token_counter import (
     count_openai_tokens,
     count_anthropic_tokens,
     count_cohere_tokens,
+    count_ollama_tokens,
     count_local_tokens,
     count_tokens,
 )
@@ -22,6 +23,7 @@ __all__ = [
     "count_openai_tokens",
     "count_anthropic_tokens",
     "count_cohere_tokens",
+    "count_ollama_tokens",
     "count_local_tokens",
     "count_tokens",
     "parse_dcgm_gpu_minutes",
