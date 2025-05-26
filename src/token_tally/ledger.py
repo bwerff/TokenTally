@@ -66,7 +66,8 @@ class Ledger:
                     ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     stripe_status TEXT NOT NULL DEFAULT 'pending',
                     stripe_record_id TEXT,
-                    invoice_cycle TEXT NOT NULL
+                    invoice_cycle TEXT NOT NULL,
+                    business_unit TEXT NOT NULL DEFAULT ''
                 )
                 """
             )
@@ -77,7 +78,8 @@ class Ledger:
                     id TEXT PRIMARY KEY,
                     customer_id TEXT NOT NULL,
                     cycle TEXT NOT NULL,
-                    amount REAL NOT NULL
+                    amount REAL NOT NULL,
+                    business_unit TEXT NOT NULL DEFAULT ''
                 )
                 """
             )
@@ -174,6 +176,7 @@ class Ledger:
         units: int,
         unit_cost: float,
         invoice_cycle: str,
+        business_unit: str = "",
         provider: Optional[str] = None,
         model: Optional[str] = None,
         currency: str = "USD",
@@ -208,18 +211,27 @@ class Ledger:
                 conn.execute(
                     """
                     INSERT OR REPLACE INTO usage_events (
-                        id, customer_id, feature, units, unit_cost, invoice_cycle
+                        id, customer_id, feature, units, unit_cost, invoice_cycle,
+                        business_unit
                     )
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (event_id, customer_id, feature, units, final_cost, invoice_cycle),
+                    (
+                        event_id,
+                        customer_id,
+                        feature,
+                        units,
+                        final_cost,
+                        invoice_cycle,
+                        business_unit,
+                    ),
                 )
                 conn.commit()
 
     def get_pending_usage_events(self):
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.execute(
-                "SELECT id, customer_id, feature, units, unit_cost, ts, invoice_cycle "
+                "SELECT id, customer_id, feature, units, unit_cost, ts, invoice_cycle, business_unit "
                 "FROM usage_events WHERE stripe_status = 'pending'"
             )
             keys = [
@@ -230,6 +242,7 @@ class Ledger:
                 "unit_cost",
                 "ts",
                 "invoice_cycle",
+                "business_unit",
             ]
             return [dict(zip(keys, row)) for row in cur.fetchall()]
 
@@ -271,7 +284,12 @@ class Ledger:
             return [dict(zip(keys, row)) for row in cur.fetchall()]
 
     def create_invoice(
-        self, invoice_id: str, customer_id: str, cycle: str, amount: float
+        self,
+        invoice_id: str,
+        customer_id: str,
+        cycle: str,
+        amount: float,
+        business_unit: str = "",
     ) -> None:
         with tracer.start_as_current_span("Ledger.create_invoice") as span:
             if span:
@@ -281,8 +299,8 @@ class Ledger:
                     pass
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute(
-                    "INSERT OR REPLACE INTO invoices (id, customer_id, cycle, amount) VALUES (?, ?, ?, ?)",
-                    (invoice_id, customer_id, cycle, amount),
+                    "INSERT OR REPLACE INTO invoices (id, customer_id, cycle, amount, business_unit) VALUES (?, ?, ?, ?, ?)",
+                    (invoice_id, customer_id, cycle, amount, business_unit),
                 )
                 conn.commit()
 
