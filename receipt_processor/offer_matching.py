@@ -14,7 +14,7 @@ class OfferMatcher:
         if not line:
             return None
         # Match by UPC first
-        digits = ''.join(ch for ch in line if ch.isdigit())
+        digits = "".join(ch for ch in line if ch.isdigit())
         if digits:
             for offer in self.offers:
                 if offer.get("upc") and offer["upc"] in digits:
@@ -23,7 +23,9 @@ class OfferMatcher:
         best_offer = None
         best_ratio = 0.0
         for offer in self.offers:
-            ratio = SequenceMatcher(None, offer.get("name", "").lower(), line.lower()).ratio()
+            ratio = SequenceMatcher(
+                None, offer.get("name", "").lower(), line.lower()
+            ).ratio()
             if ratio > best_ratio:
                 best_ratio = ratio
                 best_offer = offer

@@ -33,4 +33,5 @@ def parse_dcgm_gpu_minutes(lines: Iterable[str]) -> float:
 
     return total_util_seconds / 60.0
 
+
 __all__ = ["parse_dcgm_gpu_minutes"]
