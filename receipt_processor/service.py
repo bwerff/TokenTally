@@ -18,23 +18,28 @@ class ReceiptHandler(BaseHTTPRequestHandler):
         if self.path != "/upload":
             self.send_error(404)
             return
-        content_type = self.headers.get('Content-Type')
+        content_type = self.headers.get("Content-Type")
         if not content_type:
             self.send_error(400, "Missing Content-Type")
             return
         ctype, pdict = cgi.parse_header(content_type)
-        if ctype != 'multipart/form-data':
+        if ctype != "multipart/form-data":
             self.send_error(400, "Expected multipart form data")
             return
-        pdict['boundary'] = bytes(pdict['boundary'], "utf-8")
-        pdict['CONTENT-LENGTH'] = int(self.headers.get('Content-Length'))
-        form = cgi.FieldStorage(fp=self.rfile, headers=self.headers, environ={'REQUEST_METHOD':'POST'}, keep_blank_values=True)
-        file_item = form['file'] if 'file' in form else None
+        pdict["boundary"] = bytes(pdict["boundary"], "utf-8")
+        pdict["CONTENT-LENGTH"] = int(self.headers.get("Content-Length"))
+        form = cgi.FieldStorage(
+            fp=self.rfile,
+            headers=self.headers,
+            environ={"REQUEST_METHOD": "POST"},
+            keep_blank_values=True,
+        )
+        file_item = form["file"] if "file" in form else None
         if file_item is None or not file_item.file:
             self.send_error(400, "No file uploaded")
             return
         tmp_path = DATA_DIR / file_item.filename
-        with open(tmp_path, 'wb') as f:
+        with open(tmp_path, "wb") as f:
             f.write(file_item.file.read())
         results = processor.process_receipt(tmp_path)
         response = json.dumps(results).encode()
