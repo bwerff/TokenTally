@@ -245,7 +245,7 @@ The `token_tally.export.bigquery_export` CLI pushes usage events to BigQuery.
 | Continuous monitoring in place| Q2 2026   |
 | Type II report                | Q4 2026   |
 
-Detailed ongoing monitoring steps for the Type II audit are documented in `docs/soc2_type2_plan.md`.
+For a detailed breakdown of the controls and timeline leading up to the Type I audit, see [docs/soc2_type1_plan.md](docs/soc2_type1_plan.md).
 
 ### Data residency options
 
@@ -287,6 +287,7 @@ python -m token_tally.stripe_webhook whsec_test --db-path ledger.db --port 9000
 ```
 
 Configure Stripe to send webhooks to `http://localhost:9000/webhook`.
+
 
 
 ## Upgrading
