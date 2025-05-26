@@ -130,6 +130,9 @@ Finance leaders are sick of reconciling five-and-six-figure “mystery bills” 
    * SOC 2 roadmap published; see "SOC 2 & Data Residency" below.
    * Data residency: US or EU-managed clusters, or self-host via Helm.
    * Private-cloud (Helm chart) for Enterprise tier (see `helm/token-tally`).
+   * `python -m token_tally.soc2_monitor audit.db http://localhost:8000/health`
+     can be run every 5 minutes via cron to verify audit-log integrity and
+     service health.
 
 ---
 
