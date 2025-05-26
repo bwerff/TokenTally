@@ -1,1 +1,1 @@
-
+"""Accounting integrations like QuickBooks."""
