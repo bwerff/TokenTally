@@ -7,10 +7,8 @@ export interface Env {
   KEY_LIMITS_JSON?: string;
 }
 
-const PROVIDER_BASE: Record<string, string> = {
-  openai: 'https://api.openai.com',
-  anthropic: 'https://api.anthropic.com',
-};
+import providerConfig from '../providers.json';
+const PROVIDER_BASE: Record<string, string> = providerConfig;
 
 const DEFAULT_CONCURRENCY_LIMIT = 5;
 const DEFAULT_RATE_LIMIT = 60; // requests per minute

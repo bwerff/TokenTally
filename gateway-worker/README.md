@@ -16,6 +16,19 @@ key using a KV namespace or an environment variable containing JSON.
 | `KEY_LIMITS_JSON` | Optional JSON object mapping API keys to `{ "concurrency": n, "rate": m }` |
 | `KEY_LIMITS` | Optional KV namespace for per-key limit objects |
 
+Provider base URLs are defined in `providers.json` at the project root. Each key
+maps the provider name used in the `X-LLM-Provider` header to the base URL that
+should receive the request.
+
+Example `providers.json`:
+
+```json
+{
+  "openai": "https://api.openai.com",
+  "anthropic": "https://api.anthropic.com"
+}
+```
+
 Values found in `KEY_LIMITS_JSON` or `KEY_LIMITS` override the defaults for the
 matching API key. A limit value of `0` means no limit for that field.
 
