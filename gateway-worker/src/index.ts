@@ -7,6 +7,8 @@ export interface Env {
   KEY_LIMITS_JSON?: string;
 }
 
+import { recordLatency, metricsText } from './metrics';
+
 const PROVIDER_BASE: Record<string, string> = {
   openai: 'https://api.openai.com',
   anthropic: 'https://api.anthropic.com',
@@ -136,6 +138,12 @@ async function sendAlert(env: Env, msg: string): Promise<void> {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     return withSpan('gateway.fetch', async span => {
+      const url = new URL(request.url);
+      if (url.pathname === '/metrics') {
+        return new Response(metricsText(), {
+          headers: { 'Content-Type': 'text/plain' },
+        });
+      }
       const apiKey = request.headers.get('Authorization');
       if (!apiKey) {
         return new Response('Missing Authorization header', { status: 401 });
@@ -172,6 +180,7 @@ export default {
       const proxyReq = new Request(targetUrl, request);
       proxyReq.headers.delete('X-LLM-Provider');
 
+      const startTime = Date.now();
       try {
         const resp = await fetch(proxyReq);
         const cost = parseFloat(resp.headers.get('X-Usage-Cost') || '0');
@@ -185,6 +194,7 @@ export default {
         }
         return resp;
       } finally {
+        recordLatency(provider, Date.now() - startTime);
         exitConcurrency(apiKey);
       }
     });
