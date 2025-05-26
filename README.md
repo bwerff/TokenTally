@@ -99,7 +99,7 @@ Finance leaders are sick of reconciling five-and-six-figure “mystery bills” 
 
    * CRUD via REST endpoints and a simple Admin UI.
    * Versioned; effective-date field prevents silent retroactive changes.
-   * Supports FX conversion with daily ECB spot rates.
+   * Supports FX conversion with daily ECB spot rates, with optional intraday feed.
 
 5. **Invoice Service**
 
