@@ -276,3 +276,6 @@ python -m token_tally.stripe_webhook whsec_test --db-path ledger.db --port 9000
 ```
 
 Configure Stripe to send webhooks to `http://localhost:9000/webhook`.
+
+## Pre-seed pitch deck
+The slide outline for our $1.5 M raise lives in [`docs/preseed_pitch_deck/outline.md`](docs/preseed_pitch_deck/outline.md).
