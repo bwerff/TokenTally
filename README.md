@@ -224,9 +224,7 @@ The `token_tally.export.bigquery_export` CLI pushes usage events to BigQuery.
 | Fork Portkey, bolt ClickHouse & Stripe hook (PoC)  | Eng Lead | 05 Jun 2025 |
 | Draft security architecture doc for SOC readiness  | CISO     | 28 Jun 2025 |
 | Prepare one-pager + deck for \$1.5 M pre-seed      | GM       | 21 Jun 2025 |
-| Line up design-partner LOIs (3 SaaS, 2 Enterprise) ([template](docs/design_partner_loi_template.md)) | Sales    | 30 Jun 2025 |
-
-See [docs/customer_discovery_calls.md](docs/customer_discovery_calls.md) for the full discovery call script.
+| Line up design-partner LOIs (3 SaaS, 2 Enterprise) | Sales    | 30 Jun 2025 |
 
 ---
 **Bottom line:** This gateway solves a *real*, boring accounting problem nobody wants to touch. Nail deterministic metering, stay invisible in the hot path, and invoice cleanly—everything else is a feature-creep distraction.
@@ -242,10 +240,11 @@ See [docs/customer_discovery_calls.md](docs/customer_discovery_calls.md) for the
 | Continuous monitoring in place| Q2 2026   |
 | Type II report                | Q4 2026   |
 
+See [docs/soc2_risk_assessment.md](docs/soc2_risk_assessment.md) for the current list of identified risks and planned controls.
+
 ### Data residency options
 
 TokenTally runs in US-East by default. Enterprise customers may pin all data processing to the EU region or deploy the gateway inside their own Kubernetes clusters using the Helm chart under `helm/token-tally`.
-Set the environment variable `EU_CLICKHOUSE_HOST` to the hostname of the EU ClickHouse cluster when using the `region="eu"` option in the backend.
 
 ## Frontend
 A Next.js + tRPC admin portal lives in `frontend/`. Run `npm install` in that
