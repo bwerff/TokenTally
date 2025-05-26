@@ -1,6 +1,7 @@
 import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import GoogleProvider from 'next-auth/providers/google'
+import OktaProvider from 'next-auth/providers/okta'
 import SAMLProvider from 'next-auth/providers/saml'
 
 const providers = [
@@ -24,6 +25,16 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    })
+  )
+}
+
+if (process.env.OKTA_CLIENT_ID && process.env.OKTA_CLIENT_SECRET) {
+  providers.push(
+    OktaProvider({
+      clientId: process.env.OKTA_CLIENT_ID,
+      clientSecret: process.env.OKTA_CLIENT_SECRET,
+      issuer: process.env.OKTA_ISSUER,
     })
   )
 }

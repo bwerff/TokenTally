@@ -17,6 +17,9 @@ const linker = async (specifier) => {
   if (specifier === 'next-auth/providers/google') {
     return new vm.SourceTextModule('export default (o) => ({ id: "google", opts: o });', { context });
   }
+  if (specifier === 'next-auth/providers/okta') {
+    return new vm.SourceTextModule('export default (o) => ({ id: "okta", opts: o });', { context });
+  }
   if (specifier === 'next-auth/providers/saml') {
     return new vm.SourceTextModule('export default (o) => ({ id: "saml", opts: o });', { context });
   }

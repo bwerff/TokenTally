@@ -113,6 +113,8 @@ Finance leaders are sick of reconciling five-and-six-figure “mystery bills” 
    * `python -m token_tally.budget_alert ledger.db https://hook` can be run
      hourly via cron to notify when a customer exceeds their monthly budget.
    * Hard-stop capability (`HTTP 429`) if customer hits credit limit.
+   * `python -m token_tally.commitment_manager analyze ledger.db` suggests
+     reserved-capacity commitments from historical usage.
 
 7. **Admin Portal** (Next.js + tRPC)
 
@@ -133,6 +135,7 @@ Finance leaders are sick of reconciling five-and-six-figure “mystery bills” 
    * `python -m token_tally.soc2_monitor audit.db http://localhost:8000/health`
      can be run every 5 minutes via cron to verify audit-log integrity and
      service health.
+
 
 ---
 
@@ -179,6 +182,8 @@ Stripe Invoice → Customer
 | **Slack / Teams**              | Outbound  | Cost alerts                                                         |
 | **Snowflake / BigQuery**       | Outbound  | Live usage replica for advanced BI                                  |
 
+The `token_tally.export.bigquery_export` CLI pushes usage events to BigQuery.
+
 ---
 
 ### 11  |  Phased Delivery Plan
@@ -219,7 +224,7 @@ Stripe Invoice → Customer
 
 | Action                                             | Owner    | Due         |
 | -------------------------------------------------- | -------- | ----------- |
-| Conduct 20 customer discovery calls (script ready) | Product  | 14 Jun 2025 |
+| Conduct 20 customer discovery calls ([script](docs/customer_discovery_calls.md)) | Product  | 14 Jun 2025 |
 | Fork Portkey, bolt ClickHouse & Stripe hook (PoC)  | Eng Lead | 05 Jun 2025 |
 | Draft security architecture doc for SOC readiness  | CISO     | 28 Jun 2025 |
 | Prepare one-pager + deck for \$1.5 M pre-seed      | GM       | 21 Jun 2025 |
@@ -242,6 +247,8 @@ Stripe Invoice → Customer
 ### Data residency options
 
 TokenTally runs in US-East by default. Enterprise customers may pin all data processing to the EU region or deploy the gateway inside their own Kubernetes clusters using the Helm chart under `helm/token-tally`.
+See `scripts/setup_clickhouse_multi_region.sh` for an example ClickHouse
+replication setup spanning US and EU clusters.
 
 ## Frontend
 A Next.js + tRPC admin portal lives in `frontend/`. Run `npm install` in that
@@ -279,3 +286,26 @@ python -m token_tally.stripe_webhook whsec_test --db-path ledger.db --port 9000
 ```
 
 Configure Stripe to send webhooks to `http://localhost:9000/webhook`.
+
+
+## Pricing DSL
+TokenTally includes a small DSL for pricing rules. Each file contains one or more blocks of the form:
+
+```
+rule "<id>" {
+    provider = "<llm provider>"
+    model    = "<model name>"
+    markup   = <decimal markup>
+    effective_date = "YYYY-MM-DD"
+}
+```
+
+Compile a rules file into the SQLite store used by the gateway:
+
+```bash
+python -m token_tally.pricing_dsl path/to/rules.tally
+```
+
+See [docs/pricing_dsl.md](docs/pricing_dsl.md) for the full DSL reference.
+## Pre-seed pitch deck
+The slide outline for our $1.5 M raise lives in [`docs/preseed_pitch_deck/outline.md`](docs/preseed_pitch_deck/outline.md).
