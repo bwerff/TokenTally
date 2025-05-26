@@ -15,6 +15,8 @@ image:
   tag: latest
 service:
   type: LoadBalancer
+privateLink:
+  enabled: true
 ```
 
 ## EU Residency
@@ -33,3 +35,5 @@ Install with:
 ```bash
 helm install my-tally tokentally/token-tally -f eu-values.yaml
 ```
+Set `privateLink.enabled` to `true` when you need the service exposed via an internal load balancer for PrivateLink deployments.
+
