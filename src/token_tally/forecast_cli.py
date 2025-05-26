@@ -8,9 +8,10 @@ from .usage_ledger import UsageLedger
 def main(argv: Iterable[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Forecast next hour spend")
     parser.add_argument("db_path", help="Path to ledger.db")
+    parser.add_argument("--region", help="Region name to forecast")
     args = parser.parse_args(list(argv) if argv is not None else None)
     ledger = UsageLedger(args.db_path)
-    prediction = forecast_next_hour(ledger)
+    prediction = forecast_next_hour(ledger, region=args.region)
     print(prediction)
 
 
