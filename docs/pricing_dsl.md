@@ -1,34 +1,27 @@
 # Pricing DSL
 
-TokenTally can compile simple pricing DSL files into JSON for easier consumption.
-
-## Writing rules
-
-A DSL file consists of `key=value` pairs. Lines beginning with `#` are ignored.
-Values that look like JSON (numbers, lists, objects) are parsed accordingly.
-
-Example `rules.tally`:
+TokenTally supports a simple domain specific language for defining markup rules.
+Each line in a DSL file defines one rule with the following fields:
 
 ```
-provider=openai
-model=gpt-4
-tokens_per_dollar=1000
+provider model markup effective_date
 ```
 
-## Compile to JSON
+- **provider** – identifier for the LLM provider (e.g. `openai`).
+- **model** – model name (`gpt-4`, `claude-3`, ...).
+- **markup** – decimal or percent value (e.g. `0.2` or `20%`).
+- **effective_date** – start date in `YYYY-MM-DD` format.
 
-Use the `pricing_cli.py` tool:
+Lines beginning with `#` are treated as comments and ignored.
 
-```bash
-python -m token_tally.pricing_cli compile rules.tally -o rules.json
+Example:
+
+```
+# provider  model      markup  start date
+openai      gpt-4      20%     2024-01-01
+anthropic   claude-3   0.1     2024-06-01
 ```
 
-This will produce a JSON file:
-
-```json
-{
-  "provider": "openai",
-  "model": "gpt-4",
-  "tokens_per_dollar": 1000
-}
-```
+The parser converts the text into a list of rule dictionaries, each containing
+`id`, `provider`, `model`, `markup`, and `effective_date` fields. The `id` field
+is generated automatically using the provider, model and date.
