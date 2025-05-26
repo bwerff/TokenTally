@@ -5,6 +5,8 @@ import urllib.request
 import urllib.parse
 from typing import Optional, List, Dict
 
+from .accounting import netsuite
+
 from .fx import convert
 from .fx_rates import get_rates
 
@@ -85,6 +87,17 @@ class BillingService:
                 self.ledger.create_credit_note(
                     note_id, invoice_id, credit_amount, "Usage credit"
                 )
+            invoice_data = {
+                "invoice_id": invoice_id,
+                "customer_id": cust,
+                "cycle": cycle,
+                "total": amt,
+                "credit": credit_amount,
+            }
+            try:
+                netsuite.push_invoice(invoice_data)
+            except Exception:
+                pass
             invoices.append(
                 {"invoice_id": invoice_id, "total": amt, "credit": credit_amount}
             )
