@@ -39,3 +39,39 @@ def test_forecast_cli(tmp_path):
         check=True,
     )
     assert float(result.stdout.strip()) > 0.0
+
+
+def test_forecast_cli_region(tmp_path):
+    db_path = tmp_path / "ledger.db"
+    ledger = UsageLedger(str(db_path))
+    now = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
+    event = UsageEvent(
+        event_id="e1",
+        ts=now - timedelta(hours=1),
+        customer_id="cust",
+        provider="openai",
+        model="gpt",
+        metric_type="tokens",
+        units=10,
+        unit_cost_usd=0.5,
+    )
+    ledger.add_event(event)
+
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(SRC_DIR)
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "token_tally.forecast_cli",
+            str(db_path),
+            "--region",
+            "us",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env=env,
+        check=True,
+    )
+    assert float(result.stdout.strip()) > 0.0
