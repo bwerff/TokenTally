@@ -33,6 +33,12 @@ def test_load_google():
     assert "google" in ids
 
 
+def test_load_okta():
+    cfg = load_config({"OKTA_CLIENT_ID": "id", "OKTA_CLIENT_SECRET": "sec"})
+    ids = [p["id"] for p in cfg["providers"]]
+    assert "okta" in ids
+
+
 def test_load_saml():
     cfg = load_config(
         {"SAML_ENTRYPOINT": "url", "SAML_ISSUER": "iss", "SAML_CERT": "cert"}

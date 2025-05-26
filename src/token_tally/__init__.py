@@ -16,6 +16,7 @@ from .forecast import arima_forecast, forecast_next_hour
 from .metrics import REQUEST_COUNTER, TOKEN_COUNTER, start_metrics_server
 from .alerts import send_webhook_message
 from .cost_router import route_provider
+from .commitment_manager import suggest_commitments
 
 __all__ = [
     "UsageEvent",
@@ -40,4 +41,6 @@ __all__ = [
     "forecast_next_hour",
     "send_webhook_message",
     "route_provider",
+
+    "suggest_commitments",
 ]
