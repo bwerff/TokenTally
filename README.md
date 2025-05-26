@@ -247,8 +247,6 @@ The `token_tally.export.bigquery_export` CLI pushes usage events to BigQuery.
 ### Data residency options
 
 TokenTally runs in US-East by default. Enterprise customers may pin all data processing to the EU region or deploy the gateway inside their own Kubernetes clusters using the Helm chart under `helm/token-tally`.
-See `scripts/setup_clickhouse_multi_region.sh` for an example ClickHouse
-replication setup spanning US and EU clusters.
 
 ## Frontend
 A Next.js + tRPC admin portal lives in `frontend/`. Run `npm install` in that
@@ -287,6 +285,16 @@ python -m token_tally.stripe_webhook whsec_test --db-path ledger.db --port 9000
 
 Configure Stripe to send webhooks to `http://localhost:9000/webhook`.
 
+## Upgrading
+If you are migrating from a previous version of TokenTally, the ledger schema
+now includes a `business_unit` column on both the `usage_events` and `invoices`
+tables. Existing databases can be updated with:
+
+```sql
+ALTER TABLE usage_events ADD COLUMN business_unit TEXT NOT NULL DEFAULT '';
+ALTER TABLE invoices ADD COLUMN business_unit TEXT NOT NULL DEFAULT '';
+```
+
 
 ## Pricing DSL
 TokenTally includes a small DSL for pricing rules. Each file contains one or more blocks of the form:
@@ -309,3 +317,4 @@ python -m token_tally.pricing_dsl path/to/rules.tally
 See [docs/pricing_dsl.md](docs/pricing_dsl.md) for the full DSL reference.
 ## Pre-seed pitch deck
 The slide outline for our $1.5 M raise lives in [`docs/preseed_pitch_deck/outline.md`](docs/preseed_pitch_deck/outline.md).
+

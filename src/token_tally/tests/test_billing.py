@@ -18,7 +18,9 @@ class DummyClient(StripeUsageClient):
 def test_sync_usage_events(tmp_path):
     db = tmp_path / "ledger.db"
     ledger = Ledger(str(db))
-    ledger.add_usage_event("e1", "cust", "item1", 5, 1.0, "2024-05")
+    ledger.add_usage_event(
+        "e1", "cust", "item1", 5, 1.0, "2024-05", business_unit="sales"
+    )
     service = BillingService("sk_test", ledger)
     service.client = DummyClient()
     count = service.sync_usage_events()
@@ -30,8 +32,12 @@ def test_sync_usage_events(tmp_path):
 def test_consolidate_invoices(tmp_path, monkeypatch):
     db = tmp_path / "ledger.db"
     ledger = Ledger(str(db))
-    ledger.add_usage_event("e1", "cust", "item1", 10, 2.0, "2024-05")
-    ledger.add_usage_event("e2", "cust", "item1", -2, 2.0, "2024-05")
+    ledger.add_usage_event(
+        "e1", "cust", "item1", 10, 2.0, "2024-05", business_unit="sales"
+    )
+    ledger.add_usage_event(
+        "e2", "cust", "item1", -2, 2.0, "2024-05", business_unit="sales"
+    )
     service = BillingService("sk_test", ledger)
     service.client = DummyClient()
     monkeypatch.setattr(netsuite, "push_invoice", lambda invoice: {"status": "ok"})
@@ -42,7 +48,9 @@ def test_consolidate_invoices(tmp_path, monkeypatch):
 def test_consolidate_invoices_fx(tmp_path, monkeypatch):
     db = tmp_path / "ledger.db"
     ledger = Ledger(str(db))
-    ledger.add_usage_event("e1", "cust", "item1", 10, 2.0, "2024-05")
+    ledger.add_usage_event(
+        "e1", "cust", "item1", 10, 2.0, "2024-05", business_unit="sales"
+    )
     service = BillingService("sk_test", ledger)
     service.client = DummyClient()
     monkeypatch.setattr(netsuite, "push_invoice", lambda invoice: {"status": "ok"})
