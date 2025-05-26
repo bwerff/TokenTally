@@ -8,3 +8,6 @@ image:
 service:
   type: ClusterIP
   port: 8000
+
+privateLink:
+  enabled: false
