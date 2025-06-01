@@ -87,7 +87,8 @@ def test_snowflake_export_cli(tmp_path, monkeypatch):
     assert rows[0][0] == "cust1"
     assert rows[1][0] == "cust2"
 
-    def test_bigquery_export(monkeypatch, tmp_path):
+
+def test_bigquery_export(monkeypatch, tmp_path):
     db_path = tmp_path / "ledger.db"
     ledger = Ledger(str(db_path))
     ledger.add_usage_event("e1", "cust", "feat", 3, 0.5, "2024-05")
