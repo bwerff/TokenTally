@@ -10,6 +10,7 @@ from .gpu_arbitrage import choose_best_gpu_host
 from .markup import get_effective_markup
 from .fx_rates import get_rates
 from .fx import convert
+from .gpu_arbitrage import choose_best_gpu_host
 
 
 @dataclass
@@ -109,7 +110,8 @@ PROVIDER_BASE = {
 
 
 def route_provider(provider: str, model: str | None = None) -> str:
-    """Return the base URL for ``provider``."""
+
+    """Return base URL for ``provider``."""
 
     key = provider.lower()
     if key in {"local", "ollama"}:
@@ -121,3 +123,4 @@ def route_provider(provider: str, model: str | None = None) -> str:
 
 
 __all__ = ["route_request", "route_provider"]
+
