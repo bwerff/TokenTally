@@ -7,6 +7,7 @@ from typing import Iterable, Optional, Dict, Any
 from .markup import get_effective_markup
 from .fx_rates import get_rates
 from .fx import convert
+from .gpu_arbitrage import choose_best_gpu_host
 
 
 @dataclass
@@ -97,3 +98,14 @@ def route_request(
         result.update(best.extra)
     return result
 
+
+def route_provider(provider: str) -> str:
+    """Return chosen provider name or host.
+
+    If ``provider`` is ``"local"`` choose the best GPU host dynamically.
+    ``provider`` is returned unchanged otherwise.
+    """
+
+    if provider == "local":
+        return choose_best_gpu_host()
+    return provider

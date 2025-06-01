@@ -116,7 +116,7 @@ class BillingService:
             except Exception:
                 pass
 
-              invoices.append(
+            invoices.append(
                 {"invoice_id": invoice_id, "total": amt, "credit": credit_amount}
             )
         return invoices
