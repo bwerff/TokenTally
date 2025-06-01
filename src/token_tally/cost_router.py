@@ -110,6 +110,7 @@ PROVIDER_BASE = {
 
 
 def route_provider(provider: str, model: str | None = None) -> str:
+
     """Return base URL for ``provider``."""
 
     key = provider.lower()
