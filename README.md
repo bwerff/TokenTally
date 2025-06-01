@@ -111,11 +111,34 @@ Finance leaders are sick of reconciling five-and-six-figure “mystery bills” 
 
    * Time-series forecast (ARIMA baseline) computed hourly.
    * Webhook & Slack integration.
+   * Define budgets via `python -m token_tally.budget_cli set ledger.db <customer> <limit>`
+     or call `Ledger.set_budget("<customer>", <limit>)`.
    * `python -m token_tally.budget_alert ledger.db https://hook` can be run
      hourly via cron to notify when a customer exceeds their monthly budget.
+
+     ```
+     0 * * * * python -m token_tally.budget_alert ledger.db https://hook
+     ```
    * Hard-stop capability (`HTTP 429`) if customer hits credit limit.
    * `python -m token_tally.commitment_manager analyze ledger.db` suggests
      reserved-capacity commitments from historical usage.
+
+Example webhook receiver:
+
+```python
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import json
+
+class Webhook(BaseHTTPRequestHandler):
+    def do_POST(self):
+        length = int(self.headers.get("Content-Length", "0"))
+        payload = json.loads(self.rfile.read(length))
+        print(payload["text"])
+        self.send_response(200)
+        self.end_headers()
+
+HTTPServer(("0.0.0.0", 8000), Webhook).serve_forever()
+```
 
 7. **Admin Portal** (Next.js + tRPC)
 
