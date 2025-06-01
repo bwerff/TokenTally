@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, UTC
 from typing import Iterable, Optional, Dict, Any
+import os
+
+from .gpu_arbitrage import choose_best_gpu_host
 
 from .markup import get_effective_markup
 from .fx_rates import get_rates
@@ -97,3 +100,24 @@ def route_request(
         result.update(best.extra)
     return result
 
+
+PROVIDER_BASE = {
+    "openai": os.environ.get("OPENAI_BASE", "https://api.openai.com/v1"),
+    "anthropic": os.environ.get("ANTHROPIC_BASE", "https://api.anthropic.com"),
+    "cohere": os.environ.get("COHERE_BASE", "https://api.cohere.ai"),
+}
+
+
+def route_provider(provider: str, model: str | None = None) -> str:
+    """Return the base URL for ``provider``."""
+
+    key = provider.lower()
+    if key in {"local", "ollama"}:
+        return choose_best_gpu_host()
+    base = PROVIDER_BASE.get(key)
+    if base is None:
+        raise ValueError(f"unknown provider: {provider}")
+    return base
+
+
+__all__ = ["route_request", "route_provider"]
